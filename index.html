@@ -559,7 +559,394 @@
         <button class="btn btn-full" id="addCalendarShiftsBtn" style="display:none; margin-top:16px;">Add Selected Shifts</button>
       </div>
     </div>
+    <!-- Add this code to your HTML, just before the closing </div> of the "calendar-tab" section -->
+
+<div class="or-divider">
+  <span>OR</span>
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  <span>Upload a screenshot of your schedule:</span>
+</div>
+
+<div class="file-input-container">
+  <label for="scheduleImage" class="file-input-label">
+    <span>Click to select an image of your schedule</span>
+    <input type="file" id="scheduleImage" class="file-input" accept="image/*">
+  </label>
+</div>
+
+<div id="imagePreview" style="display:none; margin-top:16px; max-width:100%; text-align:center;">
+  <img id="previewImg" style="max-width:100%; max-height:300px; border:1px solid #d1d5db; border-radius:4px;">
+</div>
+
+<div id="imageProcessingMessage" style="display:none; margin-top:16px;"></div>
+
+<div id="extractedShifts" class="import-preview" style="display:none;"></div>
+
+<button class="btn btn-full" id="addExtractedShiftsBtn" style="display:none; margin-top:16px;">Add Extracted Shifts</button>
+
+<!-- Add this script at the end of your existing script section, before the closing </script> tag -->
+
+<script>
+// Add this to your existing JavaScript
+
+// Add the Tesseract.js library for OCR
+document.addEventListener('DOMContentLoaded', function() {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+  document.head.appendChild(script);
+});
+
+// DOM Elements - Image Upload
+const scheduleImageInput = document.getElementById('scheduleImage');
+const imagePreview = document.getElementById('imagePreview');
+const previewImg = document.getElementById('previewImg');
+const imageProcessingMessage = document.getElementById('imageProcessingMessage');
+const extractedShiftsContainer = document.getElementById('extractedShifts');
+const addExtractedShiftsBtn = document.getElementById('addExtractedShiftsBtn');
+
+// Store extracted shifts
+let extractedShifts = [];
+
+// Handle schedule image upload
+scheduleImageInput.addEventListener('change', handleScheduleImage);
+
+function handleScheduleImage(event) {
+  const file = event.target.files[0];
+  
+  if (!file) return;
+  
+  if (file.type.startsWith('image/')) {
+    // Show image preview
+    const reader = new FileReader();
     
+    reader.onload = function(e) {
+      previewImg.src = e.target.result;
+      imagePreview.style.display = 'block';
+      
+      // Show processing message
+      showImageProcessingMessage('<span class="loading"></span> Processing image...', true);
+      extractedShiftsContainer.style.display = 'none';
+      addExtractedShiftsBtn.style.display = 'none';
+      
+      // Process with OCR after a short delay to ensure UI updates
+      setTimeout(() => processImageWithOCR(e.target.result), 100);
+    };
+    
+    reader.onerror = function() {
+      showImageProcessingMessage('Error reading image file. Please try again.', false);
+    };
+    
+    reader.readAsDataURL(file);
+  } else {
+    showImageProcessingMessage('Please select a valid image file.', false);
+  }
+}
+
+// Process image with OCR
+async function processImageWithOCR(imageData) {
+  try {
+    // Check if Tesseract.js is loaded
+    if (typeof Tesseract === 'undefined') {
+      setTimeout(() => processImageWithOCR(imageData), 500);
+      return;
+    }
+    
+    // Perform OCR
+    const result = await Tesseract.recognize(
+      imageData,
+      'eng', // English language
+      { 
+        logger: message => {
+          if (message.status === 'recognizing text') {
+            showImageProcessingMessage(`<span class="loading"></span> Processing image: ${Math.round(message.progress * 100)}%`, true);
+          }
+        }
+      }
+    );
+    
+    // Extract text
+    const text = result.data.text;
+    
+    // Parse text to find shifts
+    const parsedShifts = parseTextForShifts(text);
+    
+    if (parsedShifts.length === 0) {
+      showImageProcessingMessage('No shifts could be detected in the image. Try a clearer image or manual entry.', false);
+      return;
+    }
+    
+    // Store extracted shifts
+    extractedShifts = parsedShifts;
+    
+    // Show success message
+    showImageProcessingMessage(`Found ${parsedShifts.length} potential shifts in the image!`, true);
+    
+    // Show preview
+    showExtractedShiftsPreview(parsedShifts);
+    
+    // Show add button
+    addExtractedShiftsBtn.style.display = 'block';
+    
+  } catch (error) {
+    console.error("Error processing image:", error);
+    showImageProcessingMessage('Error processing image. Please try again with a clearer image.', false);
+  }
+}
+
+// Parse extracted text to find shifts
+function parseTextForShifts(text) {
+  const parsedShifts = [];
+  
+  // Common date patterns
+  const datePatterns = [
+    // DD/MM or DD/MM/YYYY
+    /(\d{1,2})[\/\.\-](\d{1,2})(?:[\/\.\-](\d{2,4}))?/g,
+    // Month names
+    /(\d{1,2})(?:st|nd|rd|th)?\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)/gi,
+    // Day + Month names
+    /(Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)\s+(\d{1,2})(?:st|nd|rd|th)?\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)/gi
+  ];
+  
+  // Time patterns
+  const timePattern = /(\d{1,2}):?(\d{2})?\s*(?:AM|PM)?(?:\s*-\s*|\s+to\s+)(\d{1,2}):?(\d{2})?\s*(?:AM|PM)?/gi;
+  
+  // Normalize text - convert to lowercase, replace multiple spaces
+  const normalizedText = text.toLowerCase().replace(/\s+/g, ' ');
+  
+  // Split by lines
+  const lines = normalizedText.split('\n');
+  
+  // Look for date + time combinations
+  lines.forEach(line => {
+    let date = null;
+    let month = new Date().getMonth();
+    let year = new Date().getFullYear();
+    
+    // Try to find a date in this line
+    for (const pattern of datePatterns) {
+      pattern.lastIndex = 0; // Reset regex
+      const dateMatch = pattern.exec(line);
+      
+      if (dateMatch) {
+        // Different parsing based on the pattern matched
+        if (dateMatch[2] && !isNaN(dateMatch[2])) {
+          // DD/MM or DD/MM/YYYY
+          const day = parseInt(dateMatch[1]);
+          month = parseInt(dateMatch[2]) - 1; // 0-indexed months
+          
+          if (dateMatch[3] && !isNaN(dateMatch[3])) {
+            year = parseInt(dateMatch[3]);
+            // Handle 2-digit years
+            if (year < 100) year += 2000;
+          }
+          
+          date = new Date(year, month, day);
+          break;
+        } else if (typeof dateMatch[2] === 'string') {
+          // Month name format
+          const day = parseInt(dateMatch[1]);
+          const monthStr = dateMatch[2].toLowerCase().substring(0, 3);
+          
+          // Map month string to number
+          const monthMap = {
+            'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+            'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+          };
+          
+          if (monthMap[monthStr] !== undefined) {
+            month = monthMap[monthStr];
+            date = new Date(year, month, day);
+            break;
+          }
+        }
+      }
+    }
+    
+    // If we found a date, look for times
+    if (date) {
+      timePattern.lastIndex = 0; // Reset regex
+      const timeMatch = timePattern.exec(line);
+      
+      if (timeMatch) {
+        // Extract start and end times
+        let startHour = parseInt(timeMatch[1]);
+        const startMin = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+        
+        let endHour = parseInt(timeMatch[3]);
+        const endMin = timeMatch[4] ? parseInt(timeMatch[4]) : 0;
+        
+        // Adjust for 24-hour format if needed
+        if (line.includes('pm') && startHour < 12) startHour += 12;
+        if (line.includes('pm') && endHour < 12) endHour += 12;
+        
+        // Format times as HH:MM
+        const startTime = `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`;
+        const endTime = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+        
+        // Determine day type
+        const dayType = getDayTypeFromDate(date);
+        
+        // Determine if shift might include a break
+        const durationHours = (endHour + endMin/60) - (startHour + startMin/60);
+        const includeBreak = durationHours >= 5;
+        
+        // Default break time is halfway through the shift
+        const breakTimeHour = Math.floor(startHour + durationHours/2);
+        const breakTimeMin = Math.floor((startHour + durationHours/2 - breakTimeHour) * 60);
+        const breakTime = `${breakTimeHour.toString().padStart(2, '0')}:${breakTimeMin.toString().padStart(2, '0')}`;
+        
+        // Add to parsed shifts
+        parsedShifts.push({
+          date: date,
+          dayType: dayType,
+          startTime: startTime,
+          endTime: endTime,
+          includeBreak: includeBreak,
+          breakTime: breakTime,
+          confidence: 0.7, // Arbitrary confidence level
+          text: line.trim()
+        });
+      }
+    }
+  });
+  
+  return parsedShifts;
+}
+
+// Show image processing message
+function showImageProcessingMessage(message, isSuccess) {
+  imageProcessingMessage.innerHTML = message;
+  imageProcessingMessage.className = isSuccess ? 'success-message' : 'error-message';
+  imageProcessingMessage.style.display = 'block';
+}
+
+// Show extracted shifts preview
+function showExtractedShiftsPreview(shifts) {
+  extractedShiftsContainer.innerHTML = '';
+  extractedShiftsContainer.style.display = 'block';
+  
+  // Group shifts by month
+  const shiftsByMonth = {};
+  
+  shifts.forEach((shift, index) => {
+    const monthKey = `${shift.date.getFullYear()}-${shift.date.getMonth()}`;
+    if (!shiftsByMonth[monthKey]) {
+      shiftsByMonth[monthKey] = [];
+    }
+    shiftsByMonth[monthKey].push({ ...shift, index });
+  });
+  
+  // Sort months chronologically
+  const sortedMonths = Object.keys(shiftsByMonth).sort();
+  
+  // Create preview for each month
+  sortedMonths.forEach(monthKey => {
+    const monthShifts = shiftsByMonth[monthKey];
+    const [year, month] = monthKey.split('-').map(Number);
+    
+    // Create month header
+    const monthHeader = document.createElement('div');
+    monthHeader.style.fontWeight = 'bold';
+    monthHeader.style.marginTop = '10px';
+    monthHeader.style.marginBottom = '5px';
+    monthHeader.textContent = new Date(year, month, 1).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+    
+    extractedShiftsContainer.appendChild(monthHeader);
+    
+    // Create shift items for this month
+    monthShifts.forEach(shift => {
+      const previewItem = document.createElement('div');
+      previewItem.className = 'preview-item';
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'preview-checkbox';
+      checkbox.value = shift.index;
+      checkbox.checked = true;
+      
+      const label = document.createElement('div');
+      
+      // Format the date and time range
+      const dateStr = formatDate(shift.date);
+      const timeRange = `${shift.startTime}-${shift.endTime}`;
+      
+      // Show extracted text
+      const extractedText = shift.text ? `(from: "${shift.text}")` : '';
+      
+      label.innerHTML = `<strong>${dateStr}: ${timeRange}</strong><br><small style="color:#718096">${extractedText}</small>`;
+      
+      previewItem.appendChild(checkbox);
+      previewItem.appendChild(label);
+      extractedShiftsContainer.appendChild(previewItem);
+    });
+  });
+}
+
+// Add extracted shifts
+addExtractedShiftsBtn.addEventListener('click', function() {
+  // Get selected shifts
+  const selectedCheckboxes = extractedShiftsContainer.querySelectorAll('input[type=checkbox]:checked');
+  
+  if (selectedCheckboxes.length === 0) {
+    showImageProcessingMessage('Please select at least one shift to add.', false);
+    return;
+  }
+  
+  // Process each selected shift
+  const addedShifts = [];
+  
+  selectedCheckboxes.forEach(checkbox => {
+    const index = parseInt(checkbox.value);
+    const parsedShift = extractedShifts[index];
+    
+    // Calculate earnings
+    const result = calculateShiftEarnings(
+      parsedShift.date,
+      parsedShift.dayType,
+      parsedShift.startTime,
+      parsedShift.endTime,
+      parsedShift.includeBreak,
+      parsedShift.breakTime
+    );
+    
+    // Create shift object
+    const shift = {
+      id: Date.now() + index, // Unique ID
+      date: parsedShift.date,
+      dayType: parsedShift.dayType,
+      startTime: parsedShift.startTime,
+      endTime: parsedShift.endTime,
+      includeBreak: parsedShift.includeBreak,
+      breakTime: parsedShift.breakTime,
+      duration: result.duration,
+      earnings: result.earnings,
+      segments: result.segments,
+      summary: 'Extracted Shift'
+    };
+    
+    // Add to array
+    shifts.push(shift);
+    addedShifts.push(shift);
+  });
+  
+  // Save to localStorage
+  saveShifts();
+  
+  // Update UI
+  updateShiftsTable();
+  updateTotals();
+  
+  // Show success message
+  showImageProcessingMessage(`Added ${addedShifts.length} shifts to your monthly total!`, true);
+  
+  // Clear preview
+  extractedShiftsContainer.style.display = 'none';
+  addExtractedShiftsBtn.style.display = 'none';
+});
+</script>
     <h2>Shifts This Month</h2>
     <div id="shiftsTableContainer">
       <div class="no-shifts">No shifts added yet. Add shifts using one of the methods above.</div>
