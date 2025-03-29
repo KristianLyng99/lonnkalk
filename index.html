@@ -772,34 +772,6 @@
         }
       };
       
-      // Calculate overtime earnings for a shift
-      function calculateOvertimeEarnings(shift) {
-        if (!shift.includeOvertime || !shift.overtimeDuration || shift.overtimeDuration <= 0) {
-          return 0;
-        }
-        
-        let overtimeEarnings = 0;
-        
-        // Check if segments exist
-        if (!shift.segments || !Array.isArray(shift.segments)) {
-          return 0;
-        }
-        
-        // For each segment, add up all overtime earnings
-        shift.segments.forEach(segment => {
-          if (segment.isOvertime) {
-            // Full segment is overtime
-            overtimeEarnings += segment.earnings;
-          } else if (segment.isPartialOvertime && segment.overtimeHours > 0) {
-            // Calculate the overtime portion's earnings manually to avoid NaN
-            const segmentRate = segment.rate || 1.0;
-            overtimeEarnings += segment.overtimeHours * BASE_RATE * segmentRate * 2;
-          }
-        });
-        
-        return overtimeEarnings;
-      }
-      
       // Show shift breakdown in modal
       function showShiftBreakdown(shiftId) {
         const shift = shifts.find(s => s.id === shiftId);
@@ -812,7 +784,7 @@
         
         // Calculate regular and overtime parts
         const regularHours = shift.duration - (shift.overtimeDuration || 0);
-        const overtimeEarnings = calculateOvertimeEarnings(shift);
+        const overtimeEarnings = shift.includeOvertime ? (shift.overtimeDuration * BASE_RATE * getBaseRate(shift.dayType) * 2) : 0;
         const regularEarnings = shift.earnings - overtimeEarnings;
         
         // Create content HTML
@@ -825,67 +797,20 @@
           </div>
           
           <div class="breakdown-section">
-            <div class="breakdown-title">Time Segments</div>
-            <table class="breakdown-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Hours</th>
-                  <th>Rate</th>
-                  <th>Multiplier</th>
-                  <th>Earnings</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
-        
-        shift.segments.forEach(segment => {
-          const isOvertime = segment.isOvertime || segment.isPartialOvertime;
-          
-          if (segment.isPartialOvertime) {
-            // Regular part
-            html += `
-              <tr>
-                <td>${segment.time}</td>
-                <td>${segment.regularHours.toFixed(2)}</td>
-                <td>${(BASE_RATE * segment.rate).toFixed(2)} kr</td>
-                <td>${segment.rate.toFixed(2)}×</td>
-                <td>${(segment.regularHours * BASE_RATE * segment.rate).toFixed(2)} kr</td>
-              </tr>
-            `;
-            
-            // Overtime part
-            html += `
-              <tr class="overtime-row">
-                <td>${segment.time} (OT)</td>
-                <td>${segment.overtimeHours.toFixed(2)}</td>
-                <td>${(BASE_RATE * segment.rate * 2).toFixed(2)} kr</td>
-                <td>${(segment.rate * 2).toFixed(2)}×</td>
-                <td>${(segment.overtimeHours * BASE_RATE * segment.rate * 2).toFixed(2)} kr</td>
-              </tr>
-            `;
-          } else {
-            html += `
-              <tr${isOvertime ? ' class="overtime-row"' : ''}>
-                <td>${segment.time}${isOvertime ? ' (OT)' : ''}</td>
-                <td>${segment.hours.toFixed(2)}</td>
-                <td>${(BASE_RATE * segment.rate * (isOvertime ? 2 : 1)).toFixed(2)} kr</td>
-                <td>${(segment.rate * (isOvertime ? 2 : 1)).toFixed(2)}×</td>
-                <td>${segment.earnings.toFixed(2)} kr</td>
-              </tr>
-            `;
-          }
-        });
-        
-        html += `
-              </tbody>
-            </table>
+            <div class="breakdown-title">Rate Information</div>
+            <div>Base hourly rate: ${BASE_RATE.toFixed(2)} kr</div>
+            <div>Day type multiplier: ${getBaseRate(shift.dayType).toFixed(2)}×</div>
+            ${shift.includeOvertime ? `<div>Overtime multiplier: 2.00× (additional 100%)</div>` : ''}
           </div>
           
           <div class="breakdown-summary">
             <div class="breakdown-item">
               <span>Regular hours:</span>
               <span>${regularHours.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Regular rate:</span>
+              <span>${(BASE_RATE * getBaseRate(shift.dayType)).toFixed(2)} kr/h</span>
             </div>
             <div class="breakdown-item">
               <span>Regular earnings:</span>
@@ -895,6 +820,10 @@
             <div class="breakdown-item">
               <span>Overtime hours:</span>
               <span>${shift.overtimeDuration.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Overtime rate:</span>
+              <span>${(BASE_RATE * getBaseRate(shift.dayType) * 2).toFixed(2)} kr/h</span>
             </div>
             <div class="breakdown-item">
               <span>Overtime earnings:</span>
@@ -910,6 +839,17 @@
         
         breakdownContent.innerHTML = html;
         modal.style.display = "block";
+      }
+      
+      // Get base rate for a day type
+      function getBaseRate(dayType) {
+        switch(dayType) {
+          case 'sunday': return 2.20;
+          case 'holiday': return 2.50;
+          case 'saturday': return 2.00;
+          case 'friday': return 1.00; // Base rate for standard hours
+          default: return 1.00; // Weekday base rate
+        }
       }
       
       // Toggle overtime options when checkbox is clicked
@@ -1043,6 +983,9 @@
         return 'weekday';
       }
       
+      // Make getDayTypeFromDate available globally
+      window.getDayTypeFromDate = getDayTypeFromDate;
+      
       // Helper: Convert time string to minutes
       function timeToMinutes(timeStr) {
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -1088,404 +1031,7 @@
         });
       }
       
-      // Calculate earnings for a shift with integrated overtime
-      function calculateShiftEarnings(date, dayType, startTime, endTime, includeBreak, breakTime, includeOvertime, overtimeHours, overtimePosition) {
-        // Calculate duration
-        let startMinutes = timeToMinutes(startTime);
-        let endMinutes = timeToMinutes(endTime);
-        
-        // Handle overnight shifts
-        if (endMinutes < startMinutes) {
-          endMinutes += 24 * 60;
-        }
-        
-        const totalShiftMinutes = endMinutes - startMinutes;
-        const totalShiftHours = totalShiftMinutes / 60;
-        
-        // Get rates for this day type
-        const rates = compensationRates[dayType];
-        
-        // Track segments and overtime info
-        let segments = [];
-        let totalDuration = 0;
-        let totalEarnings = 0;
-        let overtimeDuration = 0;
-        
-        // Calculate overtime minutes if applicable
-        let overtimeStartMinutes = null;
-        let overtimeEndMinutes = null;
-        
-        if (includeOvertime && overtimeHours > 0) {
-          const overtimeMinutes = overtimeHours * 60;
-          
-          // Determine overtime start/end based on position selection
-          switch (overtimePosition) {
-            case 'start':
-              overtimeStartMinutes = startMinutes;
-              overtimeEndMinutes = startMinutes + overtimeMinutes;
-              break;
-              
-            case 'end':
-              overtimeStartMinutes = endMinutes - overtimeMinutes;
-              overtimeEndMinutes = endMinutes;
-              break;
-              
-            case 'both':
-              // Split overtime between start and end
-              const halfOvertimeMinutes = overtimeMinutes / 2;
-              
-              // First part overtime (at start)
-              const firstOvertimeStart = startMinutes;
-              const firstOvertimeEnd = startMinutes + halfOvertimeMinutes;
-              
-              // Second part overtime (at end)
-              const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
-              const secondOvertimeEnd = endMinutes;
-              
-              // We'll handle this special case within the calculation by passing
-              // both start and end segments explicitly
-              
-              // For now, just set these for the proper duration calculation
-              overtimeStartMinutes = firstOvertimeStart;
-              overtimeEndMinutes = firstOvertimeEnd;
-              break;
-          }
-        }
-        
-        // Handle meal break
-        if (includeBreak && breakTime) {
-          // Get break time in minutes
-          let breakStartMinutes = timeToMinutes(breakTime);
-          
-          // For overnight shifts, adjust break time if needed
-          if (startMinutes > endMinutes && breakStartMinutes < startMinutes) {
-            breakStartMinutes += 24 * 60;
-          }
-          
-          // Make sure break is within shift hours
-          if (breakStartMinutes >= startMinutes && breakStartMinutes + 30 <= endMinutes) {
-            // Break is within shift time
-            // We'll calculate earnings in two parts: before break and after break
-            
-            const breakEndMinutes = breakStartMinutes + 30; // 30 minute break
-            
-            // Special handling for "both" overtime position
-            if (includeOvertime && overtimeHours > 0 && overtimePosition === 'both') {
-              const overtimeMinutes = overtimeHours * 60;
-              const halfOvertimeMinutes = overtimeMinutes / 2;
-              
-              // First part overtime (at start)
-              const firstOvertimeStart = startMinutes;
-              const firstOvertimeEnd = startMinutes + halfOvertimeMinutes;
-              
-              // Second part overtime (at end)
-              const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
-              const secondOvertimeEnd = endMinutes;
-              
-              // Calculate first part (start to break)
-              const firstPartResult = calculatePartialShiftEarnings(
-                dayType, 
-                rates,
-                startMinutes, 
-                breakStartMinutes,
-                firstOvertimeStart,
-                firstOvertimeEnd
-              );
-              
-              // Calculate second part (after break to end)
-              const secondPartResult = calculatePartialShiftEarnings(
-                dayType,
-                rates,
-                breakEndMinutes,
-                endMinutes,
-                secondOvertimeStart,
-                secondOvertimeEnd
-              );
-              
-              // Combine results
-              totalDuration = firstPartResult.duration + secondPartResult.duration;
-              totalEarnings = firstPartResult.earnings + secondPartResult.earnings;
-              segments = [...firstPartResult.segments, ...secondPartResult.segments];
-              overtimeDuration = firstPartResult.overtimeDuration + secondPartResult.overtimeDuration;
-            } else {
-              // Calculate first part (start to break)
-              const firstPartResult = calculatePartialShiftEarnings(
-                dayType, 
-                rates,
-                startMinutes, 
-                breakStartMinutes,
-                overtimePosition === 'start' ? overtimeStartMinutes : null,
-                overtimePosition === 'start' ? overtimeEndMinutes : null
-              );
-              
-              // Calculate second part (after break to end)
-              const secondPartResult = calculatePartialShiftEarnings(
-                dayType,
-                rates,
-                breakEndMinutes,
-                endMinutes,
-                overtimePosition === 'end' ? overtimeStartMinutes : null,
-                overtimePosition === 'end' ? overtimeEndMinutes : null
-              );
-              
-              // Combine results
-              totalDuration = firstPartResult.duration + secondPartResult.duration;
-              totalEarnings = firstPartResult.earnings + secondPartResult.earnings;
-              segments = [...firstPartResult.segments, ...secondPartResult.segments];
-              overtimeDuration = firstPartResult.overtimeDuration + secondPartResult.overtimeDuration;
-            }
-          } else {
-            // Break is outside shift hours - just calculate normally
-            const result = calculatePartialShiftEarnings(
-              dayType, 
-              rates, 
-              startMinutes, 
-              endMinutes,
-              overtimeStartMinutes,
-              overtimeEndMinutes
-            );
-            
-            totalDuration = result.duration;
-            totalEarnings = result.earnings;
-            segments = result.segments;
-            overtimeDuration = result.overtimeDuration;
-          }
-        } else {
-          // No break - calculate normally
-          if (includeOvertime && overtimeHours > 0 && overtimePosition === 'both') {
-            const overtimeMinutes = overtimeHours * 60;
-            const halfOvertimeMinutes = overtimeMinutes / 2;
-            
-            // First part overtime (at start)
-            const firstOvertimeStart = startMinutes;
-            const firstOvertimeEnd = startMinutes + halfOvertimeMinutes;
-            
-            // Second part overtime (at end)
-            const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
-            const secondOvertimeEnd = endMinutes;
-            
-            // Calculate first part (with overtime at start)
-            const firstPartResult = calculatePartialShiftEarnings(
-              dayType, 
-              rates,
-              startMinutes, 
-              Math.min(endMinutes, startMinutes + totalShiftMinutes/2),
-              firstOvertimeStart,
-              firstOvertimeEnd
-            );
-            
-            // Calculate second part (with overtime at end)
-            const secondPartResult = calculatePartialShiftEarnings(
-              dayType,
-              rates,
-              Math.max(startMinutes, endMinutes - totalShiftMinutes/2),
-              endMinutes,
-              secondOvertimeStart,
-              secondOvertimeEnd
-            );
-            
-            // Combine results
-            totalDuration = firstPartResult.duration + secondPartResult.duration;
-            totalEarnings = firstPartResult.earnings + secondPartResult.earnings;
-            segments = [...firstPartResult.segments, ...secondPartResult.segments];
-            overtimeDuration = firstPartResult.overtimeDuration + secondPartResult.overtimeDuration;
-          } else {
-            // Regular calculation with overtime at start or end
-            const result = calculatePartialShiftEarnings(
-              dayType, 
-              rates, 
-              startMinutes, 
-              endMinutes,
-              overtimeStartMinutes,
-              overtimeEndMinutes
-            );
-            
-            totalDuration = result.duration;
-            totalEarnings = result.earnings;
-            segments = result.segments;
-            overtimeDuration = result.overtimeDuration;
-          }
-        }
-        
-        return {
-          duration: totalDuration,
-          earnings: totalEarnings,
-          segments: segments,
-          overtimeDuration: overtimeDuration
-        };
-      }
-      
-      // Calculate earnings for part of a shift
-      function calculatePartialShiftEarnings(dayType, rates, startMinutes, endMinutes, overtimeStartMinutes, overtimeEndMinutes) {
-        const durationHours = (endMinutes - startMinutes) / 60;
-        
-        // Track total earnings and segments
-        let totalEarnings = 0;
-        let segments = [];
-        let currentMinutes = startMinutes;
-        let hoursRemaining = durationHours;
-        let overtimeDuration = 0;
-        
-        while (hoursRemaining > 0) {
-          // Format current time
-          const currentHour = Math.floor((currentMinutes % (24 * 60)) / 60);
-          const currentMin = currentMinutes % 60;
-          const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
-          
-          // Find applicable rate
-          let rate = 1.0;
-          let rateDesc = 'Regular';
-          
-          for (const period of rates) {
-            if (period.range === 'default') continue;
-            
-            const [start, end] = period.range.split('-');
-            
-            if (isTimeInRange(currentTime, start, end)) {
-              rate = period.rate;
-              rateDesc = period.range;
-              break;
-            }
-          }
-          
-          // Determine segment duration
-          let hoursInSegment = 0;
-          
-          // Fixed rate for entire day
-          if (rates.length === 2 && rates[0].range === '00:00-24:00') {
-            hoursInSegment = hoursRemaining;
-          } else {
-            // Find next rate change
-            let nextChangeMinutes = 24 * 60;
-            
-            for (const period of rates) {
-              if (period.range === 'default') continue;
-              
-              const [start, _] = period.range.split('-');
-              const startMin = timeToMinutes(start);
-              
-              // Next rate change after current time
-              if ((startMin > currentMinutes % (24 * 60)) && 
-                  (startMin < nextChangeMinutes)) {
-                nextChangeMinutes = startMin;
-              }
-            }
-            
-            // If no next change found in the day, go to midnight
-            if (nextChangeMinutes === 24 * 60) {
-              nextChangeMinutes = 24 * 60;
-            }
-            
-            // Calculate hours until change
-            const minutesUntilChange = 
-              nextChangeMinutes > (currentMinutes % (24 * 60)) 
-                ? nextChangeMinutes - (currentMinutes % (24 * 60))
-                : (24 * 60 + nextChangeMinutes) - (currentMinutes % (24 * 60));
-            
-            const hoursUntilChange = minutesUntilChange / 60;
-            
-            // Use smaller of hours until change, remaining hours, or time to end
-            const hoursToEnd = (endMinutes - currentMinutes) / 60;
-            hoursInSegment = Math.min(hoursUntilChange, hoursRemaining, hoursToEnd);
-          }
-          
-          // Check if this segment overlaps with overtime
-          let isOvertime = false;
-          let overtimeHoursInSegment = 0;
-          
-          if (overtimeStartMinutes !== null && overtimeEndMinutes !== null) {
-            // Check for overlap between this segment and overtime period
-            const segmentEndMinutes = currentMinutes + (hoursInSegment * 60);
-            
-            // If segment overlaps with overtime
-            if (!(segmentEndMinutes <= overtimeStartMinutes || currentMinutes >= overtimeEndMinutes)) {
-              // Calculate overlap
-              const overlapStart = Math.max(currentMinutes, overtimeStartMinutes);
-              const overlapEnd = Math.min(segmentEndMinutes, overtimeEndMinutes);
-              const overlapHours = (overlapEnd - overlapStart) / 60;
-              
-              isOvertime = true;
-              overtimeHoursInSegment = overlapHours;
-              overtimeDuration += overlapHours;
-              
-              // If partial overlap, we split this segment
-              if (overlapHours < hoursInSegment) {
-                // We'll handle this as two separate segments
-                const regularHours = hoursInSegment - overlapHours;
-                
-                // First, calculate earnings for regular (non-overtime) part
-                const regularEarnings = regularHours * BASE_RATE * rate;
-                totalEarnings += regularEarnings;
-                
-                // Then calculate earnings for overtime part (with 100% extra)
-                const overtimeEarnings = overlapHours * BASE_RATE * rate * 2;
-                totalEarnings += overtimeEarnings;
-                
-                // Add segment with both parts
-                segments.push({
-                  time: currentTime,
-                  hours: hoursInSegment,
-                  rate: rate,
-                  earnings: regularEarnings + overtimeEarnings,
-                  regularHours: regularHours,
-                  overtimeHours: overlapHours,
-                  isPartialOvertime: true
-                });
-              } else {
-                // Full segment is overtime
-                const segmentEarnings = hoursInSegment * BASE_RATE * rate * 2; // 100% extra pay
-                totalEarnings += segmentEarnings;
-                
-                // Save segment
-                segments.push({
-                  time: currentTime,
-                  hours: hoursInSegment,
-                  rate: rate,
-                  earnings: segmentEarnings,
-                  isOvertime: true
-                });
-              }
-            } else {
-              // No overlap with overtime - calculate normally
-              const segmentEarnings = hoursInSegment * BASE_RATE * rate;
-              totalEarnings += segmentEarnings;
-              
-              // Save segment
-              segments.push({
-                time: currentTime,
-                hours: hoursInSegment,
-                rate: rate,
-                earnings: segmentEarnings
-              });
-            }
-          } else {
-            // No overtime - calculate normally
-            const segmentEarnings = hoursInSegment * BASE_RATE * rate;
-            totalEarnings += segmentEarnings;
-            
-            // Save segment
-            segments.push({
-              time: currentTime,
-              hours: hoursInSegment,
-              rate: rate,
-              earnings: segmentEarnings
-            });
-          }
-          
-          // Advance time and reduce remaining hours
-          currentMinutes += hoursInSegment * 60;
-          hoursRemaining -= hoursInSegment;
-        }
-        
-        return {
-          duration: durationHours,
-          earnings: totalEarnings,
-          segments: segments,
-          overtimeDuration: overtimeDuration
-        };
-      }
-      
-      // Add a shift manually
+      // Simplified add shift function
       function addShift() {
         const dateStr = dateInput.value;
         if (!dateStr) {
@@ -1509,27 +1055,40 @@
           return;
         }
         
+        // Calculate basic shift duration
+        let startMinutes = timeToMinutes(startTime);
+        let endMinutes = timeToMinutes(endTime);
+        
+        // Handle overnight shifts
+        if (endMinutes < startMinutes) {
+          endMinutes += 24 * 60;
+        }
+        
+        // Calculate total shift duration in hours
+        const totalShiftHours = (endMinutes - startMinutes) / 60;
+        
         // Get break info
         const includeBreak = breakCheckbox.checked;
         const breakTime = breakTimeInput.value;
+        const breakDeduction = includeBreak ? 0.5 : 0; // 30 minutes break
         
         // Get overtime info
         const includeOvertime = overtimeCheckbox.checked;
         const overtimeHours = includeOvertime ? parseFloat(overtimeHoursInput.value) : 0;
         const overtimePosition = overtimePositionSelect.value;
         
+        // Calculate effective hours
+        const totalWorkingHours = totalShiftHours - breakDeduction;
+        const effectiveOvertimeHours = includeOvertime ? Math.min(overtimeHours, totalWorkingHours) : 0;
+        const regularHours = totalWorkingHours - effectiveOvertimeHours;
+        
+        // Get base rate for this day type
+        const baseRate = getBaseRate(dayType);
+        
         // Calculate earnings
-        const result = calculateShiftEarnings(
-          date, 
-          dayType, 
-          startTime, 
-          endTime, 
-          includeBreak, 
-          breakTime,
-          includeOvertime,
-          overtimeHours,
-          overtimePosition
-        );
+        const regularEarnings = regularHours * BASE_RATE * baseRate;
+        const overtimeEarnings = effectiveOvertimeHours * BASE_RATE * baseRate * 2; // Double rate for overtime
+        const totalEarnings = regularEarnings + overtimeEarnings;
         
         // Create shift object
         const shift = {
@@ -1543,10 +1102,12 @@
           includeOvertime: includeOvertime,
           overtimeHours: overtimeHours,
           overtimePosition: overtimePosition,
-          duration: result.duration,
-          earnings: result.earnings,
-          segments: result.segments,
-          overtimeDuration: result.overtimeDuration || 0
+          duration: totalWorkingHours,
+          earnings: totalEarnings,
+          overtimeDuration: effectiveOvertimeHours,
+          regularEarnings: regularEarnings,
+          overtimeEarnings: overtimeEarnings,
+          baseRate: baseRate
         };
         
         // Add to array
@@ -1558,9 +1119,6 @@
         // Update UI
         updateShiftsTable();
         updateTotals();
-        
-        // Do NOT show shift breakdown immediately - this has been removed
-        // showShiftBreakdown(shift.id);
       }
       
       // Fetch calendar from URL
@@ -1890,18 +1448,33 @@
           const index = parseInt(checkbox.value);
           const parsedShift = parsedCalendarShifts[index];
           
+          // Calculate basic shift duration
+          let startMinutes = timeToMinutes(parsedShift.startTime);
+          let endMinutes = timeToMinutes(parsedShift.endTime);
+          
+          // Handle overnight shifts
+          if (endMinutes < startMinutes) {
+            endMinutes += 24 * 60;
+          }
+          
+          // Calculate total shift duration in hours
+          const totalShiftHours = (endMinutes - startMinutes) / 60;
+          
+          // Get break deduction
+          const breakDeduction = parsedShift.includeBreak ? 0.5 : 0; // 30 minutes break
+          
+          // Calculate effective hours
+          const totalWorkingHours = totalShiftHours - breakDeduction;
+          const effectiveOvertimeHours = parsedShift.includeOvertime ? Math.min(parsedShift.overtimeHours, totalWorkingHours) : 0;
+          const regularHours = totalWorkingHours - effectiveOvertimeHours;
+          
+          // Get base rate for this day type
+          const baseRate = getBaseRate(parsedShift.dayType);
+          
           // Calculate earnings
-          const result = calculateShiftEarnings(
-            parsedShift.date,
-            parsedShift.dayType,
-            parsedShift.startTime,
-            parsedShift.endTime,
-            parsedShift.includeBreak,
-            parsedShift.breakTime,
-            parsedShift.includeOvertime,
-            parsedShift.overtimeHours,
-            parsedShift.overtimePosition
-          );
+          const regularEarnings = regularHours * BASE_RATE * baseRate;
+          const overtimeEarnings = effectiveOvertimeHours * BASE_RATE * baseRate * 2; // Double rate for overtime
+          const totalEarnings = regularEarnings + overtimeEarnings;
           
           // Create shift object
           const shift = {
@@ -1915,10 +1488,12 @@
             includeOvertime: parsedShift.includeOvertime,
             overtimeHours: parsedShift.overtimeHours,
             overtimePosition: parsedShift.overtimePosition,
-            duration: result.duration,
-            earnings: result.earnings,
-            segments: result.segments,
-            overtimeDuration: result.overtimeDuration,
+            duration: totalWorkingHours,
+            earnings: totalEarnings,
+            overtimeDuration: effectiveOvertimeHours,
+            regularEarnings: regularEarnings,
+            overtimeEarnings: overtimeEarnings,
+            baseRate: baseRate,
             summary: parsedShift.summary
           };
           
@@ -2041,6 +1616,9 @@
       // Make functions available globally for event handling
       window.deleteShift = deleteShift;
       window.showShiftBreakdown = showShiftBreakdown;
+      window.shifts = shifts;
+      window.updateShiftsTable = updateShiftsTable;
+      window.updateTotals = updateTotals;
       
       // Add event listeners
       addShiftBtn.addEventListener('click', addShift);
@@ -2053,7 +1631,7 @@
 
   <!-- Direct fix script for overtime input -->
   <script>
-    // This script directly fixes the overtime hours input issue
+    // Enable overtime inputs properly
     document.addEventListener('DOMContentLoaded', function() {
       // Get the elements
       const overtimeCheckbox = document.getElementById('overtimeCheck');
