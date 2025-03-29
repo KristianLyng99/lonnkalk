@@ -159,6 +159,11 @@
     .btn-full {
       width: 100%;
     }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
     
     .shifts-table {
       width: 100%;
@@ -399,6 +404,141 @@
       font-style: italic;
     }
     
+    /* Shift breakdown modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    
+    .modal-content {
+      background-color: #fefefe;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      width: 80%;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #0e766e;
+    }
+    
+    .close-modal {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close-modal:hover,
+    .close-modal:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .breakdown-section {
+      margin-bottom: 15px;
+    }
+    
+    .breakdown-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #2d3748;
+    }
+    
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+    
+    .breakdown-table th,
+    .breakdown-table td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+    }
+    
+    .breakdown-table th {
+      background-color: #f7fafc;
+      text-align: left;
+    }
+    
+    .breakdown-summary {
+      background-color: #f7fafc;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 15px;
+    }
+    
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    
+    .breakdown-total {
+      font-weight: 600;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 5px;
+      margin-top: 5px;
+    }
+    
+    .overtime-row {
+      background-color: #fff5f5;
+    }
+    
+    .expanded-row {
+      display: none;
+      background-color: #f7fafc;
+    }
+    
+    .expanded-content {
+      padding: 10px 10px 10px 30px;
+    }
+    
+    .expand-toggle {
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .shift-details-btn {
+      padding: 4px 8px;
+      font-size: 12px;
+      background-color: #4299e1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .shift-details-btn:hover {
+      background-color: #3182ce;
+    }
+    
     @media (max-width: 600px) {
       .form-group {
         min-width: 100%;
@@ -406,6 +546,11 @@
       
       .tab {
         padding: 10px;
+      }
+      
+      .modal-content {
+        width: 95%;
+        margin: 5% auto;
       }
     }
   </style>
@@ -551,6 +696,19 @@
       <button class="clear-all" id="clearAllBtn">Clear All Shifts</button>
     </div>
   </div>
+  
+  <!-- Shift Breakdown Modal -->
+  <div id="shiftBreakdownModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Shift Breakdown</div>
+        <span class="close-modal">&times;</span>
+      </div>
+      <div id="breakdownContent">
+        <!-- Content will be dynamically inserted here -->
+      </div>
+    </div>
+  </div>
 
   <script>
     (function() {
@@ -590,6 +748,11 @@
       const clearAllBtn = document.getElementById('clearAllBtn');
       const tableContainer = document.getElementById('shiftsTableContainer');
       
+      // DOM Elements - Modal
+      const modal = document.getElementById('shiftBreakdownModal');
+      const closeModal = document.querySelector('.close-modal');
+      const breakdownContent = document.getElementById('breakdownContent');
+      
       // Set today's date as default
       dateInput.value = new Date().toISOString().split('T')[0];
       
@@ -597,8 +760,152 @@
       let shifts = [];
       let parsedCalendarShifts = [];
       
+      // Close the modal when clicking the × button
+      closeModal.onclick = function() {
+        modal.style.display = "none";
+      };
+      
+      // Close the modal when clicking outside it
+      window.onclick = function(event) {
+        if (event.target == modal) {
+          modal.style.display = "none";
+        }
+      };
+      
+      // Show shift breakdown in modal
+      function showShiftBreakdown(shiftId) {
+        const shift = shifts.find(s => s.id === shiftId);
+        
+        if (!shift) return;
+        
+        // Format date
+        const dateStr = formatDate(shift.date);
+        const dayName = shift.dayType.charAt(0).toUpperCase() + shift.dayType.slice(1);
+        
+        // Calculate regular and overtime parts
+        const regularHours = shift.duration - (shift.overtimeDuration || 0);
+        const regularEarnings = shift.earnings - (calculateOvertimeEarnings(shift) || 0);
+        
+        // Create content HTML
+        let html = `
+          <div class="breakdown-section">
+            <div class="breakdown-title">${dateStr} (${dayName})</div>
+            <div>Shift time: ${shift.startTime} - ${shift.endTime}</div>
+            ${shift.includeBreak ? `<div>Break: ${shift.breakTime} (30 minutes)</div>` : ''}
+            ${shift.includeOvertime ? `<div>Overtime: ${shift.overtimeHours} hours (${shift.overtimePosition === 'start' ? 'at start' : shift.overtimePosition === 'end' ? 'at end' : 'at start and end'})</div>` : ''}
+          </div>
+          
+          <div class="breakdown-section">
+            <div class="breakdown-title">Time Segments</div>
+            <table class="breakdown-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Hours</th>
+                  <th>Rate</th>
+                  <th>Multiplier</th>
+                  <th>Earnings</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        
+        shift.segments.forEach(segment => {
+          const isOvertime = segment.isOvertime || segment.isPartialOvertime;
+          
+          if (segment.isPartialOvertime) {
+            // Regular part
+            html += `
+              <tr>
+                <td>${segment.time}</td>
+                <td>${segment.regularHours.toFixed(2)}</td>
+                <td>${(BASE_RATE * segment.rate).toFixed(2)} kr</td>
+                <td>${segment.rate.toFixed(2)}×</td>
+                <td>${(segment.regularHours * BASE_RATE * segment.rate).toFixed(2)} kr</td>
+              </tr>
+            `;
+            
+            // Overtime part
+            html += `
+              <tr class="overtime-row">
+                <td>${segment.time} (OT)</td>
+                <td>${segment.overtimeHours.toFixed(2)}</td>
+                <td>${(BASE_RATE * segment.rate * 2).toFixed(2)} kr</td>
+                <td>${(segment.rate * 2).toFixed(2)}×</td>
+                <td>${(segment.overtimeHours * BASE_RATE * segment.rate * 2).toFixed(2)} kr</td>
+              </tr>
+            `;
+          } else {
+            html += `
+              <tr${isOvertime ? ' class="overtime-row"' : ''}>
+                <td>${segment.time}${isOvertime ? ' (OT)' : ''}</td>
+                <td>${segment.hours.toFixed(2)}</td>
+                <td>${(BASE_RATE * segment.rate * (isOvertime ? 2 : 1)).toFixed(2)} kr</td>
+                <td>${(segment.rate * (isOvertime ? 2 : 1)).toFixed(2)}×</td>
+                <td>${segment.earnings.toFixed(2)} kr</td>
+              </tr>
+            `;
+          }
+        });
+        
+        html += `
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="breakdown-summary">
+            <div class="breakdown-item">
+              <span>Regular hours:</span>
+              <span>${regularHours.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Regular earnings:</span>
+              <span>${regularEarnings.toFixed(2)} kr</span>
+            </div>
+            ${shift.overtimeDuration > 0 ? `
+            <div class="breakdown-item">
+              <span>Overtime hours:</span>
+              <span>${shift.overtimeDuration.toFixed(2)}</span>
+            </div>
+            <div class="breakdown-item">
+              <span>Overtime earnings:</span>
+              <span>${calculateOvertimeEarnings(shift).toFixed(2)} kr</span>
+            </div>
+            ` : ''}
+            <div class="breakdown-item breakdown-total">
+              <span>Total earnings:</span>
+              <span>${shift.earnings.toFixed(2)} kr</span>
+            </div>
+          </div>
+        `;
+        
+        breakdownContent.innerHTML = html;
+        modal.style.display = "block";
+      }
+      
+      // Calculate overtime earnings for a shift
+      function calculateOvertimeEarnings(shift) {
+        if (!shift.includeOvertime || !shift.overtimeDuration) return 0;
+        
+        let overtimeEarnings = 0;
+        
+        shift.segments.forEach(segment => {
+          if (segment.isOvertime) {
+            overtimeEarnings += segment.earnings;
+          } else if (segment.isPartialOvertime && segment.overtimeHours) {
+            overtimeEarnings += segment.overtimeHours * BASE_RATE * segment.rate * 2;
+          }
+        });
+        
+        return overtimeEarnings;
+      }
+      
       // Toggle overtime options when checkbox is clicked
       overtimeCheckbox.addEventListener('change', function() {
+        // Enable/disable the overtime input fields
+        overtimeHoursInput.disabled = !this.checked;
+        overtimePositionSelect.disabled = !this.checked;
+        
         // Update the max overtime hours based on total shift duration
         if (this.checked) {
           updateMaxOvertimeHours();
@@ -814,12 +1121,21 @@
             case 'both':
               // Split overtime between start and end
               const halfOvertimeMinutes = overtimeMinutes / 2;
-              overtimeStartMinutes = startMinutes;
-              const firstOvertimeEnd = startMinutes + halfOvertimeMinutes;
-              const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
-              overtimeEndMinutes = endMinutes;
               
-              // We'll handle this special case within the calculation
+              // First part overtime (at start)
+              const firstOvertimeStart = startMinutes;
+              const firstOvertimeEnd = startMinutes + halfOvertimeMinutes;
+              
+              // Second part overtime (at end)
+              const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
+              const secondOvertimeEnd = endMinutes;
+              
+              // We'll handle this special case within the calculation by passing
+              // both start and end segments explicitly
+              
+              // For now, just set these for the proper duration calculation
+              overtimeStartMinutes = firstOvertimeStart;
+              overtimeEndMinutes = firstOvertimeEnd;
               break;
           }
         }
@@ -853,9 +1169,6 @@
               // Second part overtime (at end)
               const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
               const secondOvertimeEnd = endMinutes;
-              
-              // Check if break overlaps with overtime periods
-              // For simplicity, we'll handle the break as if it doesn't interfere with overtime
               
               // Calculate first part (start to break)
               const firstPartResult = calculatePartialShiftEarnings(
@@ -899,8 +1212,8 @@
                 rates,
                 breakEndMinutes,
                 endMinutes,
-                overtimeStartMinutes,
-                overtimeEndMinutes
+                includeOvertime && overtimePosition === 'end' ? overtimeStartMinutes : null,
+                includeOvertime && overtimePosition === 'end' ? overtimeEndMinutes : null
               );
               
               // Combine results
@@ -909,6 +1222,21 @@
               segments = [...firstPartResult.segments, ...secondPartResult.segments];
               overtimeDuration = firstPartResult.overtimeDuration + secondPartResult.overtimeDuration;
             }
+          } else {
+            // Break is outside shift hours - just calculate normally
+            const result = calculatePartialShiftEarnings(
+              dayType, 
+              rates, 
+              startMinutes, 
+              endMinutes,
+              overtimeStartMinutes,
+              overtimeEndMinutes
+            );
+            
+            totalDuration = result.duration;
+            totalEarnings = result.earnings;
+            segments = result.segments;
+            overtimeDuration = result.overtimeDuration;
           }
         } else {
           // No break - calculate normally
@@ -924,21 +1252,21 @@
             const secondOvertimeStart = endMinutes - halfOvertimeMinutes;
             const secondOvertimeEnd = endMinutes;
             
-            // Calculate first part (start with overtime)
+            // Calculate first part (with overtime at start)
             const firstPartResult = calculatePartialShiftEarnings(
               dayType, 
               rates,
               startMinutes, 
-              Math.max(startMinutes + totalShiftMinutes / 2, firstOvertimeEnd),
+              Math.min(endMinutes, startMinutes + totalShiftMinutes/2),
               firstOvertimeStart,
               firstOvertimeEnd
             );
             
-            // Calculate second part (end with overtime)
+            // Calculate second part (with overtime at end)
             const secondPartResult = calculatePartialShiftEarnings(
               dayType,
               rates,
-              Math.min(endMinutes - totalShiftMinutes / 2, secondOvertimeStart),
+              Math.max(startMinutes, endMinutes - totalShiftMinutes/2),
               endMinutes,
               secondOvertimeStart,
               secondOvertimeEnd
@@ -1218,6 +1546,9 @@
         // Update UI
         updateShiftsTable();
         updateTotals();
+        
+        // Show shift breakdown immediately
+        showShiftBreakdown(shift.id);
       }
       
       // Fetch calendar from URL
@@ -1640,7 +1971,7 @@
                 <th>Times</th>
                 <th>Hours</th>
                 <th>Earnings</th>
-                <th class="action-column">Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1669,7 +2000,8 @@
               <td>${hoursInfo}</td>
               <td>${shift.earnings.toFixed(2)} kr</td>
               <td class="text-center">
-                <button class="btn btn-red" onclick="deleteShift(${shift.id})">×</button>
+                <button class="btn btn-sm" onclick="showShiftBreakdown(${shift.id})">Details</button>
+                <button class="btn btn-sm btn-red" onclick="deleteShift(${shift.id})">×</button>
               </td>
             </tr>
           `;
@@ -1694,8 +2026,9 @@
         overtimeHoursEl.textContent = `Overtime hours: ${totalOvertimeHours.toFixed(2)}`;
       }
       
-      // Make deleteShift available globally
+      // Make functions available globally for event handling
       window.deleteShift = deleteShift;
+      window.showShiftBreakdown = showShiftBreakdown;
       
       // Add event listeners
       addShiftBtn.addEventListener('click', addShift);
