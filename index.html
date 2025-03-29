@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monthly Earnings Calculator with Calendar Integration</title>
+  <title>Monthly Earnings Calculator</title>
   <style>
     * {
       box-sizing: border-box;
@@ -22,7 +22,7 @@
       background-color: white;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      max-width: 800px;
+      max-width: 700px;
       width: 100%;
       padding: 24px;
       margin: 0 auto;
@@ -34,13 +34,6 @@
       font-weight: bold;
       margin-bottom: 20px;
       text-align: center;
-    }
-    
-    h2 {
-      color: #0e766e;
-      font-size: 18px;
-      font-weight: 600;
-      margin: 24px 0 12px 0;
     }
     
     .total-section {
@@ -62,32 +55,6 @@
       color: #718096;
       font-size: 14px;
       margin-bottom: 5px;
-    }
-    
-    .tab-container {
-      display: flex;
-      margin-bottom: 20px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .tab {
-      padding: 10px 20px;
-      cursor: pointer;
-      font-weight: 500;
-      border-bottom: 2px solid transparent;
-    }
-    
-    .tab.active {
-      color: #0e766e;
-      border-bottom: 2px solid #0e766e;
-    }
-    
-    .tab-content {
-      display: none;
-    }
-    
-    .tab-content.active {
-      display: block;
     }
     
     .shift-form {
@@ -223,202 +190,9 @@
       width: auto;
     }
     
-    .import-preview {
-      margin-top: 16px;
-      background-color: #f0f9ff;
-      border-radius: 8px;
-      padding: 16px;
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #e2e8f0;
-    }
-    
-    .preview-item {
-      padding: 8px;
-      border-bottom: 1px solid #e2e8f0;
-      display: flex;
-      align-items: center;
-    }
-    
-    .preview-item:last-child {
-      border-bottom: none;
-    }
-    
-    .preview-checkbox {
-      margin-right: 10px;
-    }
-    
-    .success-message {
-      background-color: #d1fae5;
-      color: #065f46;
-      padding: 10px;
-      border-radius: 4px;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-    
-    .error-message {
-      background-color: #fee2e2;
-      color: #b91c1c;
-      padding: 10px;
-      border-radius: 4px;
-      margin-bottom: 16px;
-      text-align: center;
-    }
-    
-    .step {
-      margin-bottom: 16px;
-    }
-    
-    .step-number {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      background-color: #0e766e;
-      color: white;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 24px;
-      margin-right: 8px;
-    }
-    
-    .instruction {
-      margin-left: 32px;
-      margin-bottom: 8px;
-    }
-    
-    .code {
-      font-family: monospace;
-      background-color: #f7fafc;
-      padding: 2px 4px;
-      border-radius: 2px;
-    }
-    
-    .file-input-container {
-      margin-top: 16px;
-    }
-    
-    .file-input-label {
-      display: block;
-      background-color: #f7fafc;
-      border: 1px dashed #d1d5db;
-      border-radius: 4px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-      margin-bottom: 16px;
-    }
-    
-    .file-input-label:hover {
-      background-color: #edf2f7;
-    }
-    
-    .file-input {
-      display: none;
-    }
-    
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(0, 0, 0, 0.1);
-      border-top-color: #0e766e;
-      border-radius: 50%;
-      animation: spin 1s infinite linear;
-      margin-right: 10px;
-      vertical-align: middle;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .url-input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      font-size: 14px;
-      margin-bottom: 10px;
-    }
-    
-    .or-divider {
-      display: flex;
-      align-items: center;
-      margin: 20px 0;
-      color: #718096;
-    }
-    
-    .or-divider::before,
-    .or-divider::after {
-      content: '';
-      flex: 1;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .or-divider span {
-      padding: 0 10px;
-    }
-    
-    .save-link-container {
-      display: flex;
-      align-items: center;
-      margin-top: 10px;
-    }
-    
-    .save-link-container input[type="checkbox"] {
-      margin-right: 10px;
-    }
-    
-    .saved-links {
-      margin-top: 16px;
-      max-height: 150px;
-      overflow-y: auto;
-      background-color: #f7fafc;
-      border-radius: 4px;
-      padding: 10px;
-    }
-    
-    .saved-link-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .saved-link-item:last-child {
-      border-bottom: none;
-    }
-    
-    .link-actions {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .link-actions button {
-      padding: 2px 6px;
-      font-size: 12px;
-    }
-    
-    .edit-link-form {
-      margin-top: 16px;
-      padding: 10px;
-      background-color: #f7fafc;
-      border-radius: 4px;
-    }
-    
-    .edit-link-form .form-group {
-      margin-bottom: 10px;
-    }
-    
     @media (max-width: 600px) {
       .form-group {
         min-width: 100%;
-      }
-      
-      .tab {
-        padding: 10px;
       }
     }
   </style>
@@ -434,161 +208,55 @@
       <div class="info-text" id="totalHours">Total hours: 0</div>
     </div>
     
-    <div class="tab-container">
-      <div class="tab active" data-tab="manual">Manual Entry</div>
-      <div class="tab" data-tab="calendar">Import Calendar</div>
-    </div>
-    
-    <div class="tab-content active" id="manual-tab">
-      <div class="shift-form">
-        <div class="form-title">Add Work Shift</div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="shiftDate">Date:</label>
-            <input type="date" id="shiftDate" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="shiftType">Day Type:</label>
-            <select id="shiftType">
-              <option value="auto">Auto-detect from date</option>
-              <option value="weekday">Mon-Thu</option>
-              <option value="friday">Friday</option>
-              <option value="saturday">Saturday</option>
-              <option value="sunday">Sunday</option>
-              <option value="holiday">Holiday</option>
-            </select>
-          </div>
+    <div class="shift-form">
+      <div class="form-title">Add Work Shift</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="shiftDate">Date:</label>
+          <input type="date" id="shiftDate" required>
         </div>
         
-        <div class="form-row">
-          <div class="form-group">
-            <label for="startTime">Start Time:</label>
-            <input type="time" id="startTime" value="09:00" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="endTime">End Time:</label>
-            <input type="time" id="endTime" value="17:00" required>
-          </div>
+        <div class="form-group">
+          <label for="shiftType">Day Type:</label>
+          <select id="shiftType">
+            <option value="auto">Auto-detect from date</option>
+            <option value="weekday">Mon-Thu</option>
+            <option value="friday">Friday</option>
+            <option value="saturday">Saturday</option>
+            <option value="sunday">Sunday</option>
+            <option value="holiday">Holiday</option>
+          </select>
         </div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="breakCheck">Include 30-min meal break?</label>
-            <div class="break-container">
-              <input type="checkbox" id="breakCheck" class="break-checkbox">
-              <input type="time" id="breakTime" value="12:00">
-            </div>
-          </div>
-        </div>
-        
-        <button class="btn btn-full" id="addShiftBtn">Add Shift</button>
       </div>
-    </div>
-    
-    <div class="tab-content" id="calendar-tab">
-      <div class="shift-form">
-        <div class="form-title">Import Shifts from Calendar</div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startTime">Start Time:</label>
+          <input type="time" id="startTime" value="09:00" required>
+        </div>
         
-        <div id="savedLinksSection" style="display: none;">
-          <h2>Your Saved Calendar Links</h2>
-          <div class="saved-links" id="savedLinksContainer">
-            <!-- Saved links will be displayed here -->
+        <div class="form-group">
+          <label for="endTime">End Time:</label>
+          <input type="time" id="endTime" value="17:00" required>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="breakCheck">Include 30-min meal break?</label>
+          <div class="break-container">
+            <input type="checkbox" id="breakCheck" class="break-checkbox">
+            <input type="time" id="breakTime" value="12:00">
           </div>
         </div>
-        
-        <div class="step">
-          <span class="step-number">1</span>
-          <span>Enter your calendar URL:</span>
-        </div>
-        
-        <input type="url" id="calendarUrl" class="url-input" placeholder="https://api.example.com/calendar/data/ics?calendarId=YOUR_ID">
-        
-        <div class="save-link-container">
-          <input type="checkbox" id="saveLink" checked>
-          <label for="saveLink">Save this link for future use</label>
-        </div>
-        
-        <div class="form-group" id="linkNameContainer" style="margin-top: 10px;">
-          <label for="linkName">Give this calendar link a name:</label>
-          <input type="text" id="linkName" placeholder="Work Schedule" required>
-        </div>
-        
-        <button class="btn btn-full" id="fetchCalendarBtn" style="margin-top: 16px;">Fetch Calendar</button>
-        
-        <div class="or-divider">
-          <span>OR</span>
-        </div>
-        
-        <div class="step">
-          <span class="step-number">2</span>
-          <span>Upload a calendar file (.ics):</span>
-        </div>
-        
-        <div class="file-input-container">
-          <label for="calendarFile" class="file-input-label">
-            <span>Click to select a .ics file</span>
-            <input type="file" id="calendarFile" class="file-input" accept=".ics">
-          </label>
-        </div>
-        
-        <div class="or-divider">
-          <span>OR</span>
-        </div>
-        
-        <div class="step">
-          <span class="step-number">3</span>
-          <span>Upload a screenshot of your schedule:</span>
-        </div>
-        
-        <div class="file-input-container">
-          <label for="scheduleImage" class="file-input-label">
-            <span>Click to select an image of your schedule</span>
-            <input type="file" id="scheduleImage" class="file-input" accept="image/*">
-          </label>
-        </div>
-        
-        <div id="imagePreview" style="display:none; margin-top:16px; max-width:100%; text-align:center;">
-          <img id="previewImg" style="max-width:100%; max-height:300px; border:1px solid #d1d5db; border-radius:4px;">
-        </div>
-        
-        <div id="imageProcessingMessage" style="display:none; margin-top:16px;"></div>
-        
-        <div id="extractedShifts" class="import-preview" style="display:none;"></div>
-        
-        <button class="btn btn-full" id="addExtractedShiftsBtn" style="display:none; margin-top:16px;">Add Extracted Shifts</button>
-        
-        <div class="step">
-          <span class="step-number">?</span>
-          <span>How to get your calendar link:</span>
-        </div>
-        
-        <div class="instruction">
-          1. Log in to your work scheduling system
-        </div>
-        <div class="instruction">
-          2. Look for "Calendar Export", "Subscribe", or "iCal" options
-        </div>
-        <div class="instruction">
-          3. Copy the URL that ends with .ics or contains "calendar/data/ics"
-        </div>
-        <div class="instruction">
-          4. Paste it in the field above
-        </div>
-        
-        <div id="calendarMessage" style="display:none; margin-top:16px;"></div>
-        
-        <div id="calendarPreview" class="import-preview" style="display:none;"></div>
-        
-        <button class="btn btn-full" id="addCalendarShiftsBtn" style="display:none; margin-top:16px;">Add Selected Shifts</button>
       </div>
+      
+      <button class="btn btn-full" id="addShiftBtn">Add Shift</button>
     </div>
     
-    <h2>Shifts This Month</h2>
     <div id="shiftsTableContainer">
-      <div class="no-shifts">No shifts added yet. Add shifts using one of the methods above.</div>
+      <div class="no-shifts">No shifts added yet. Start by adding shifts above.</div>
     </div>
     
     <div class="text-center">
@@ -601,11 +269,7 @@
       // Constants
       const BASE_RATE = 284.49;
       
-      // DOM Elements - Tabs
-      const tabs = document.querySelectorAll('.tab');
-      const tabContents = document.querySelectorAll('.tab-content');
-      
-      // DOM Elements - Manual Entry
+      // DOM Elements
       const totalAmountEl = document.getElementById('totalAmount');
       const totalHoursEl = document.getElementById('totalHours');
       const dateInput = document.getElementById('shiftDate');
@@ -615,46 +279,14 @@
       const breakCheckbox = document.getElementById('breakCheck');
       const breakTimeInput = document.getElementById('breakTime');
       const addShiftBtn = document.getElementById('addShiftBtn');
-      
-      // DOM Elements - Calendar Import
-      const calendarUrlInput = document.getElementById('calendarUrl');
-      const saveCalendarLink = document.getElementById('saveLink');
-      const linkNameInput = document.getElementById('linkName');
-      const fetchCalendarBtn = document.getElementById('fetchCalendarBtn');
-      const calendarFileInput = document.getElementById('calendarFile');
-      const calendarMessage = document.getElementById('calendarMessage');
-      const calendarPreview = document.getElementById('calendarPreview');
-      const addCalendarShiftsBtn = document.getElementById('addCalendarShiftsBtn');
-      const savedLinksSection = document.getElementById('savedLinksSection');
-      const savedLinksContainer = document.getElementById('savedLinksContainer');
-      
-      // DOM Elements - Other
       const clearAllBtn = document.getElementById('clearAllBtn');
       const tableContainer = document.getElementById('shiftsTableContainer');
       
       // Set today's date as default
       dateInput.value = new Date().toISOString().split('T')[0];
       
-      // Store shifts and parsed shifts
+      // Store shifts
       let shifts = [];
-      let parsedCalendarShifts = [];
-      let savedLinks = [];
-      
-      // Load saved calendar links
-      loadSavedLinks();
-      
-      // Tab switching
-      tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          // Remove active class from all tabs and contents
-          tabs.forEach(t => t.classList.remove('active'));
-          tabContents.forEach(c => c.classList.remove('active'));
-          
-          // Add active class to clicked tab and corresponding content
-          tab.classList.add('active');
-          document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
-        });
-      });
       
       // Load shifts from localStorage if available
       if (localStorage.getItem('monthlyShifts')) {
@@ -772,88 +404,6 @@
         });
       }
       
-      // Load saved calendar links from localStorage
-      function loadSavedLinks() {
-        try {
-          const savedLinksStr = localStorage.getItem('savedCalendarLinks');
-          if (savedLinksStr) {
-            savedLinks = JSON.parse(savedLinksStr);
-            updateSavedLinksUI();
-          }
-        } catch (e) {
-          console.error("Error loading saved links:", e);
-          savedLinks = [];
-        }
-      }
-      
-      // Save calendar links to localStorage
-      function saveSavedLinks() {
-        localStorage.setItem('savedCalendarLinks', JSON.stringify(savedLinks));
-        updateSavedLinksUI();
-      }
-      
-      // Update saved links UI
-      function updateSavedLinksUI() {
-        if (savedLinks.length === 0) {
-          savedLinksSection.style.display = 'none';
-          return;
-        }
-        
-        savedLinksSection.style.display = 'block';
-        savedLinksContainer.innerHTML = '';
-        
-        savedLinks.forEach((link, index) => {
-          const linkItem = document.createElement('div');
-          linkItem.className = 'saved-link-item';
-          
-          const linkName = document.createElement('div');
-          linkName.textContent = link.name;
-          
-          const linkActions = document.createElement('div');
-          linkActions.className = 'link-actions';
-          
-          const useBtn = document.createElement('button');
-          useBtn.className = 'btn';
-          useBtn.textContent = 'Use';
-          useBtn.addEventListener('click', () => {
-            calendarUrlInput.value = link.url;
-            linkNameInput.value = link.name;
-            showCalendarMessage(`Selected "${link.name}" calendar`, true);
-          });
-          
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'btn btn-red';
-          deleteBtn.textContent = 'Delete';
-          deleteBtn.addEventListener('click', () => {
-            if (confirm(`Are you sure you want to delete the "${link.name}" calendar link?`)) {
-              savedLinks.splice(index, 1);
-              saveSavedLinks();
-            }
-          });
-          
-          linkActions.appendChild(useBtn);
-          linkActions.appendChild(deleteBtn);
-          
-          linkItem.appendChild(linkName);
-          linkItem.appendChild(linkActions);
-          savedLinksContainer.appendChild(linkItem);
-        });
-      }
-      
-      // Add a new saved link
-      function addSavedLink(name, url) {
-        // Check if this URL already exists
-        const exists = savedLinks.some(link => link.url === url);
-        
-        if (!exists) {
-          savedLinks.push({ name, url });
-          saveSavedLinks();
-          return true;
-        }
-        
-        return false;
-      }
-      
       // Calculate earnings for a shift
       function calculateShiftEarnings(date, dayType, startTime, endTime, includeBreak, breakTime) {
         // Calculate duration
@@ -905,4 +455,282 @@
             return {
               duration: (breakStartMinutes - startMinutes + endMinutes - breakEndMinutes) / 60,
               earnings: firstPartEarnings.earnings + secondPartEarnings.earnings,
-              segments: [...first
+              segments: [...firstPartEarnings.segments, ...secondPartEarnings.segments]
+            };
+          }
+        }
+        
+        // No break or break outside shift hours - calculate normally
+        return calculatePartialShiftEarnings(dayType, rates, startMinutes, endMinutes);
+      }
+      
+      // Calculate earnings for part of a shift (either whole shift or part before/after break)
+      function calculatePartialShiftEarnings(dayType, rates, startMinutes, endMinutes) {
+        const durationHours = (endMinutes - startMinutes) / 60;
+        
+        // Track total earnings and segments
+        let totalEarnings = 0;
+        let segments = [];
+        let currentMinutes = startMinutes;
+        let hoursRemaining = durationHours;
+        
+        while (hoursRemaining > 0) {
+          // Format current time
+          const currentHour = Math.floor((currentMinutes % (24 * 60)) / 60);
+          const currentMin = currentMinutes % 60;
+          const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
+          
+          // Find applicable rate
+          let rate = 1.0;
+          let rateDesc = 'Regular';
+          
+          for (const period of rates) {
+            if (period.range === 'default') continue;
+            
+            const [start, end] = period.range.split('-');
+            
+            if (isTimeInRange(currentTime, start, end)) {
+              rate = period.rate;
+              rateDesc = period.range;
+              break;
+            }
+          }
+          
+          // Determine segment duration
+          let hoursInSegment = 0;
+          
+          // Fixed rate for entire day
+          if (rates.length === 2 && rates[0].range === '00:00-24:00') {
+            hoursInSegment = hoursRemaining;
+          } else {
+            // Find next rate change
+            let nextChangeMinutes = 24 * 60;
+            
+            for (const period of rates) {
+              if (period.range === 'default') continue;
+              
+              const [start, _] = period.range.split('-');
+              const startMin = timeToMinutes(start);
+              
+              // Next rate change after current time
+              if ((startMin > currentMinutes % (24 * 60)) && 
+                  (startMin < nextChangeMinutes)) {
+                nextChangeMinutes = startMin;
+              }
+            }
+            
+            // If no next change found in the day, go to midnight
+            if (nextChangeMinutes === 24 * 60) {
+              nextChangeMinutes = 24 * 60;
+            }
+            
+            // Calculate hours until change
+            const minutesUntilChange = 
+              nextChangeMinutes > (currentMinutes % (24 * 60)) 
+                ? nextChangeMinutes - (currentMinutes % (24 * 60))
+                : (24 * 60 + nextChangeMinutes) - (currentMinutes % (24 * 60));
+            
+            const hoursUntilChange = minutesUntilChange / 60;
+            
+            // Use smaller of hours until change, remaining hours, or time to end
+            const hoursToEnd = (endMinutes - currentMinutes) / 60;
+            hoursInSegment = Math.min(hoursUntilChange, hoursRemaining, hoursToEnd);
+          }
+          
+          // Calculate earnings for segment
+          const segmentEarnings = hoursInSegment * BASE_RATE * rate;
+          totalEarnings += segmentEarnings;
+          
+          // Save segment
+          segments.push({
+            time: currentTime,
+            hours: hoursInSegment,
+            rate: rate,
+            earnings: segmentEarnings
+          });
+          
+          // Advance time and reduce remaining hours
+          currentMinutes += hoursInSegment * 60;
+          hoursRemaining -= hoursInSegment;
+        }
+        
+        return {
+          duration: durationHours,
+          earnings: totalEarnings,
+          segments: segments
+        };
+      }
+      
+      // Add a shift
+      function addShift() {
+        const dateStr = dateInput.value;
+        if (!dateStr) {
+          alert('Please select a date');
+          return;
+        }
+        
+        const date = new Date(dateStr);
+        let dayType = typeSelect.value;
+        
+        // Auto-detect day type if needed
+        if (dayType === 'auto') {
+          dayType = getDayTypeFromDate(date);
+        }
+        
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        
+        if (!startTime || !endTime) {
+          alert('Please enter start and end times');
+          return;
+        }
+        
+        // Get break info
+        const includeBreak = breakCheckbox.checked;
+        const breakTime = breakTimeInput.value;
+        
+        // Validate break time is within shift
+        if (includeBreak) {
+          const breakMinutes = timeToMinutes(breakTime);
+          let startMinutes = timeToMinutes(startTime);
+          let endMinutes = timeToMinutes(endTime);
+          
+          // Adjust for overnight shifts
+          if (endMinutes < startMinutes) {
+            endMinutes += 24 * 60;
+          }
+          
+          // Check if break starts within shift
+          let breakInShift = false;
+          
+          if (breakMinutes >= startMinutes && breakMinutes + 30 <= endMinutes) {
+            breakInShift = true;
+          } else if (breakMinutes < startMinutes && breakMinutes + 24 * 60 >= startMinutes && (breakMinutes + 24 * 60) + 30 <= endMinutes) {
+            // Overnight shift with break on next day
+            breakInShift = true;
+          }
+          
+          if (!breakInShift) {
+            if (!confirm("The break time appears to be outside your shift or too close to the end. Continue anyway?")) {
+              return;
+            }
+          }
+        }
+        
+        // Calculate earnings
+        const result = calculateShiftEarnings(date, dayType, startTime, endTime, includeBreak, breakTime);
+        
+        // Create shift object
+        const shift = {
+          id: Date.now(), // Unique ID
+          date: date,
+          dayType: dayType,
+          startTime: startTime,
+          endTime: endTime,
+          includeBreak: includeBreak,
+          breakTime: breakTime,
+          duration: result.duration,
+          earnings: result.earnings,
+          segments: result.segments
+        };
+        
+        // Add to array
+        shifts.push(shift);
+        
+        // Save to localStorage
+        saveShifts();
+        
+        // Update UI
+        updateShiftsTable();
+        updateTotals();
+      }
+      
+      // Delete a shift
+      function deleteShift(id) {
+        shifts = shifts.filter(shift => shift.id !== id);
+        saveShifts();
+        updateShiftsTable();
+        updateTotals();
+      }
+      
+      // Clear all shifts
+      function clearAllShifts() {
+        if (confirm('Are you sure you want to clear all shifts?')) {
+          shifts = [];
+          saveShifts();
+          updateShiftsTable();
+          updateTotals();
+        }
+      }
+      
+      // Save shifts to localStorage
+      function saveShifts() {
+        localStorage.setItem('monthlyShifts', JSON.stringify(shifts));
+      }
+      
+      // Update the shifts table
+      function updateShiftsTable() {
+        if (shifts.length === 0) {
+          tableContainer.innerHTML = '<div class="no-shifts">No shifts added yet. Start by adding shifts above.</div>';
+          return;
+        }
+        
+        // Sort shifts by date
+        const sortedShifts = [...shifts].sort((a, b) => a.date - b.date);
+        
+        let html = `
+          <table class="shifts-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Times</th>
+                <th>Hours</th>
+                <th>Earnings</th>
+                <th class="action-column">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        sortedShifts.forEach(shift => {
+          const dayName = shift.dayType.charAt(0).toUpperCase() + shift.dayType.slice(1);
+          html += `
+            <tr>
+              <td>${formatDate(shift.date)} <span style="color:#718096">(${dayName})</span></td>
+              <td>${shift.startTime} - ${shift.endTime} ${shift.includeBreak ? `<span style="color:#718096">(break: ${shift.breakTime})</span>` : ''}</td>
+              <td>${shift.duration.toFixed(2)}</td>
+              <td>${shift.earnings.toFixed(2)} kr</td>
+              <td class="text-center">
+                <button class="btn btn-red" onclick="deleteShift(${shift.id})">×</button>
+              </td>
+            </tr>
+          `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
+        
+        tableContainer.innerHTML = html;
+      }
+      
+      // Update total amounts
+      function updateTotals() {
+        const totalEarnings = shifts.reduce((sum, shift) => sum + shift.earnings, 0);
+        const totalHours = shifts.reduce((sum, shift) => sum + shift.duration, 0);
+        
+        totalAmountEl.textContent = `${totalEarnings.toFixed(2)} kr`;
+        totalHoursEl.textContent = `Total hours: ${totalHours.toFixed(2)}`;
+      }
+      
+      // Make deleteShift available globally
+      window.deleteShift = deleteShift;
+      
+      // Add event listeners
+      addShiftBtn.addEventListener('click', addShift);
+      clearAllBtn.addEventListener('click', clearAllShifts);
+    })();
+  </script>
+</body>
+</html>
