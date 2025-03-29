@@ -821,7 +821,7 @@
             <div class="breakdown-title">${dateStr} (${dayName})</div>
             <div>Shift time: ${shift.startTime} - ${shift.endTime}</div>
             ${shift.includeBreak ? `<div>Break: ${shift.breakTime} (30 minutes)</div>` : ''}
-            ${shift.includeOvertime ? `<div>Overtime: ${shift.overtimeHours} hours (${shift.overtimePosition === 'start' ? 'at start' : shift.overtimePosition === 'end' ? 'at end' : 'at start and end'})</div>` : ''}
+            ${shift.includeOvertime ? `<div>Overtime: ${(shift.overtimeDuration || 0).toFixed(2)} hours (${shift.overtimePosition === 'start' ? 'at start' : shift.overtimePosition === 'end' ? 'at end' : 'at start and end'})</div>` : ''}
           </div>
           
           <div class="breakdown-section">
