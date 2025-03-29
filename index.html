@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monthly Earnings Calculator</title>
+  <title>Monthly Earnings Calculator with Calendar Integration</title>
   <style>
     * {
       box-sizing: border-box;
@@ -22,7 +22,7 @@
       background-color: white;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      max-width: 700px;
+      max-width: 800px;
       width: 100%;
       padding: 24px;
       margin: 0 auto;
@@ -34,6 +34,13 @@
       font-weight: bold;
       margin-bottom: 20px;
       text-align: center;
+    }
+    
+    h2 {
+      color: #0e766e;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 24px 0 12px 0;
     }
     
     .total-section {
@@ -55,6 +62,32 @@
       color: #718096;
       font-size: 14px;
       margin-bottom: 5px;
+    }
+    
+    .tab-container {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab.active {
+      color: #0e766e;
+      border-bottom: 2px solid #0e766e;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
     }
     
     .shift-form {
@@ -190,9 +223,150 @@
       width: auto;
     }
     
+    .import-preview {
+      margin-top: 16px;
+      background-color: #f0f9ff;
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .preview-item {
+      padding: 8px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+    
+    .preview-checkbox {
+      margin-right: 10px;
+    }
+    
+    .success-message {
+      background-color: #d1fae5;
+      color: #065f46;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    
+    .error-message {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    
+    .step {
+      margin-bottom: 16px;
+    }
+    
+    .step-number {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background-color: #0e766e;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      margin-right: 8px;
+    }
+    
+    .instruction {
+      margin-left: 32px;
+      margin-bottom: 8px;
+    }
+    
+    .code {
+      font-family: monospace;
+      background-color: #f7fafc;
+      padding: 2px 4px;
+      border-radius: 2px;
+    }
+    
+    .file-input-container {
+      margin-top: 16px;
+    }
+    
+    .file-input-label {
+      display: block;
+      background-color: #f7fafc;
+      border: 1px dashed #d1d5db;
+      border-radius: 4px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+    
+    .file-input-label:hover {
+      background-color: #edf2f7;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #0e766e;
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .url-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .or-divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+      color: #718096;
+    }
+    
+    .or-divider::before,
+    .or-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .or-divider span {
+      padding: 0 10px;
+    }
+    
     @media (max-width: 600px) {
       .form-group {
         min-width: 100%;
+      }
+      
+      .tab {
+        padding: 10px;
       }
     }
   </style>
@@ -208,55 +382,100 @@
       <div class="info-text" id="totalHours">Total hours: 0</div>
     </div>
     
-    <div class="shift-form">
-      <div class="form-title">Add Work Shift</div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="shiftDate">Date:</label>
-          <input type="date" id="shiftDate" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="shiftType">Day Type:</label>
-          <select id="shiftType">
-            <option value="auto">Auto-detect from date</option>
-            <option value="weekday">Mon-Thu</option>
-            <option value="friday">Friday</option>
-            <option value="saturday">Saturday</option>
-            <option value="sunday">Sunday</option>
-            <option value="holiday">Holiday</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="startTime">Start Time:</label>
-          <input type="time" id="startTime" value="09:00" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="endTime">End Time:</label>
-          <input type="time" id="endTime" value="17:00" required>
-        </div>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="breakCheck">Include 30-min meal break?</label>
-          <div class="break-container">
-            <input type="checkbox" id="breakCheck" class="break-checkbox">
-            <input type="time" id="breakTime" value="12:00">
-          </div>
-        </div>
-      </div>
-      
-      <button class="btn btn-full" id="addShiftBtn">Add Shift</button>
+    <div class="tab-container">
+      <div class="tab active" data-tab="manual">Manual Entry</div>
+      <div class="tab" data-tab="calendar">Import Calendar</div>
     </div>
     
+    <div class="tab-content active" id="manual-tab">
+      <div class="shift-form">
+        <div class="form-title">Add Work Shift</div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="shiftDate">Date:</label>
+            <input type="date" id="shiftDate" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="shiftType">Day Type:</label>
+            <select id="shiftType">
+              <option value="auto">Auto-detect from date</option>
+              <option value="weekday">Mon-Thu</option>
+              <option value="friday">Friday</option>
+              <option value="saturday">Saturday</option>
+              <option value="sunday">Sunday</option>
+              <option value="holiday">Holiday</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="startTime">Start Time:</label>
+            <input type="time" id="startTime" value="09:00" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="endTime">End Time:</label>
+            <input type="time" id="endTime" value="17:00" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="breakCheck">Include 30-min meal break?</label>
+            <div class="break-container">
+              <input type="checkbox" id="breakCheck" class="break-checkbox">
+              <input type="time" id="breakTime" value="12:00">
+            </div>
+          </div>
+        </div>
+        
+        <button class="btn btn-full" id="addShiftBtn">Add Shift</button>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="calendar-tab">
+      <div class="shift-form">
+        <div class="form-title">Import Shifts from Calendar</div>
+        
+        <div class="step">
+          <span class="step-number">1</span>
+          <span>Enter your calendar URL:</span>
+        </div>
+        
+        <input type="url" id="calendarUrl" class="url-input" placeholder="https://api.mypurecloud.de/api/v2/workforcemanagement/calendar/data/ics?calendarId=..." value="https://api.mypurecloud.de/api/v2/workforcemanagement/calendar/data/ics?calendarId=NJFMYKJTBcq0og7xrYPmp1YkWPBX6dhThWv2nT36254">
+        
+        <button class="btn btn-full" id="fetchCalendarBtn">Fetch Calendar</button>
+        
+        <div class="or-divider">
+          <span>OR</span>
+        </div>
+        
+        <div class="step">
+          <span class="step-number">2</span>
+          <span>Upload a calendar file (.ics):</span>
+        </div>
+        
+        <div class="file-input-container">
+          <label for="calendarFile" class="file-input-label">
+            <span>Click to select a .ics file</span>
+            <input type="file" id="calendarFile" class="file-input" accept=".ics">
+          </label>
+        </div>
+        
+        <div id="calendarMessage" style="display:none; margin-top:10px;"></div>
+        
+        <div id="calendarPreview" class="import-preview" style="display:none;"></div>
+        
+        <button class="btn btn-full" id="addCalendarShiftsBtn" style="display:none; margin-top:10px;">Add Selected Shifts</button>
+      </div>
+    </div>
+    
+    <h2>Shifts This Month</h2>
     <div id="shiftsTableContainer">
-      <div class="no-shifts">No shifts added yet. Start by adding shifts above.</div>
+      <div class="no-shifts">No shifts added yet. Add shifts using one of the methods above.</div>
     </div>
     
     <div class="text-center">
@@ -269,7 +488,11 @@
       // Constants
       const BASE_RATE = 284.49;
       
-      // DOM Elements
+      // DOM Elements - Tabs
+      const tabs = document.querySelectorAll('.tab');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // DOM Elements - Manual Entry
       const totalAmountEl = document.getElementById('totalAmount');
       const totalHoursEl = document.getElementById('totalHours');
       const dateInput = document.getElementById('shiftDate');
@@ -279,14 +502,38 @@
       const breakCheckbox = document.getElementById('breakCheck');
       const breakTimeInput = document.getElementById('breakTime');
       const addShiftBtn = document.getElementById('addShiftBtn');
+      
+      // DOM Elements - Calendar Import
+      const calendarUrlInput = document.getElementById('calendarUrl');
+      const fetchCalendarBtn = document.getElementById('fetchCalendarBtn');
+      const calendarFileInput = document.getElementById('calendarFile');
+      const calendarMessage = document.getElementById('calendarMessage');
+      const calendarPreview = document.getElementById('calendarPreview');
+      const addCalendarShiftsBtn = document.getElementById('addCalendarShiftsBtn');
+      
+      // DOM Elements - Other
       const clearAllBtn = document.getElementById('clearAllBtn');
       const tableContainer = document.getElementById('shiftsTableContainer');
       
       // Set today's date as default
       dateInput.value = new Date().toISOString().split('T')[0];
       
-      // Store shifts
+      // Store shifts and parsed shifts
       let shifts = [];
+      let parsedCalendarShifts = [];
+      
+      // Tab switching
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          // Remove active class from all tabs and contents
+          tabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(c => c.classList.remove('active'));
+          
+          // Add active class to clicked tab and corresponding content
+          tab.classList.add('active');
+          document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+        });
+      });
       
       // Load shifts from localStorage if available
       if (localStorage.getItem('monthlyShifts')) {
@@ -561,7 +808,7 @@
         };
       }
       
-      // Add a shift
+      // Add a shift manually
       function addShift() {
         const dateStr = dateInput.value;
         if (!dateStr) {
@@ -588,34 +835,6 @@
         // Get break info
         const includeBreak = breakCheckbox.checked;
         const breakTime = breakTimeInput.value;
-        
-        // Validate break time is within shift
-        if (includeBreak) {
-          const breakMinutes = timeToMinutes(breakTime);
-          let startMinutes = timeToMinutes(startTime);
-          let endMinutes = timeToMinutes(endTime);
-          
-          // Adjust for overnight shifts
-          if (endMinutes < startMinutes) {
-            endMinutes += 24 * 60;
-          }
-          
-          // Check if break starts within shift
-          let breakInShift = false;
-          
-          if (breakMinutes >= startMinutes && breakMinutes + 30 <= endMinutes) {
-            breakInShift = true;
-          } else if (breakMinutes < startMinutes && breakMinutes + 24 * 60 >= startMinutes && (breakMinutes + 24 * 60) + 30 <= endMinutes) {
-            // Overnight shift with break on next day
-            breakInShift = true;
-          }
-          
-          if (!breakInShift) {
-            if (!confirm("The break time appears to be outside your shift or too close to the end. Continue anyway?")) {
-              return;
-            }
-          }
-        }
         
         // Calculate earnings
         const result = calculateShiftEarnings(date, dayType, startTime, endTime, includeBreak, breakTime);
@@ -645,6 +864,375 @@
         updateTotals();
       }
       
+      // Fetch calendar from URL
+      async function fetchCalendar() {
+        const url = calendarUrlInput.value.trim();
+        
+        if (!url) {
+          showCalendarMessage('Please enter a calendar URL.', false);
+          return;
+        }
+        
+        // Show loading state
+        showCalendarMessage('<span class="loading"></span> Fetching calendar data...', true);
+        calendarPreview.style.display = 'none';
+        addCalendarShiftsBtn.style.display = 'none';
+        
+        try {
+          // Try to fetch the calendar
+          const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'include' // Include cookies for authentication
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Error fetching calendar: ${response.status} ${response.statusText}`);
+          }
+          
+          const icsData = await response.text();
+          processIcsData(icsData);
+        } catch (error) {
+          console.error("Error fetching calendar:", error);
+          
+          // Show error message and suggest file upload
+          showCalendarMessage(`Could not fetch calendar data directly. This is likely due to browser security restrictions. Please download the calendar file and upload it using the file option below.`, false);
+        }
+      }
+      
+      // Handle calendar file upload
+      function handleCalendarFile(event) {
+        const file = event.target.files[0];
+        
+        if (!file) return;
+        
+        if (file.name.endsWith('.ics')) {
+          // Show loading state
+          showCalendarMessage('<span class="loading"></span> Processing calendar file...', true);
+          calendarPreview.style.display = 'none';
+          addCalendarShiftsBtn.style.display = 'none';
+          
+          const reader = new FileReader();
+          
+          reader.onload = function(e) {
+            const icsData = e.target.result;
+            processIcsData(icsData);
+          };
+          
+          reader.onerror = function() {
+            showCalendarMessage('Error reading file. Please try again.', false);
+          };
+          
+          reader.readAsText(file);
+        } else {
+          showCalendarMessage('Please select a valid .ics calendar file.', false);
+        }
+      }
+      
+      // Process ICS data
+      function processIcsData(icsData) {
+        try {
+          // Parse the ICS data
+          const events = parseIcsEvents(icsData);
+          
+          if (events.length === 0) {
+            showCalendarMessage('No work shifts found in the calendar.', false);
+            return;
+          }
+          
+          // Extract work shifts
+          parsedCalendarShifts = extractWorkShifts(events);
+          
+          if (parsedCalendarShifts.length === 0) {
+            showCalendarMessage('No work shifts found in the calendar.', false);
+            return;
+          }
+          
+          // Show success message
+          showCalendarMessage(`Found ${parsedCalendarShifts.length} work shifts in your calendar!`, true);
+          
+          // Show preview
+          showCalendarPreview(parsedCalendarShifts);
+          
+          // Show add button
+          addCalendarShiftsBtn.style.display = 'block';
+        } catch (error) {
+          console.error("Error processing calendar data:", error);
+          showCalendarMessage('Error processing calendar data. Please check the file format.', false);
+        }
+      }
+      
+      // Parse ICS events
+      function parseIcsEvents(icsData) {
+        const events = [];
+        const lines = icsData.split(/\r\n|\n|\r/);
+        
+        let currentEvent = null;
+        let inEvent = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          if (line.startsWith('BEGIN:VEVENT')) {
+            inEvent = true;
+            currentEvent = {};
+          } else if (line.startsWith('END:VEVENT')) {
+            inEvent = false;
+            if (currentEvent) {
+              events.push(currentEvent);
+            }
+            currentEvent = null;
+          } else if (inEvent && currentEvent) {
+            // Handle line continuation
+            if (line.startsWith(' ') || line.startsWith('\t')) {
+              // This is a continuation of the previous line
+              // Find the last property and append this line to its value
+              const lastProperty = Object.keys(currentEvent).pop();
+              if (lastProperty) {
+                currentEvent[lastProperty] += line.substring(1); // Remove the leading space
+              }
+              continue;
+            }
+            
+            // Regular line - parse property
+            const colonIndex = line.indexOf(':');
+            if (colonIndex > 0) {
+              const key = line.substring(0, colonIndex);
+              const value = line.substring(colonIndex + 1);
+              
+              // Handle semicolon parameters in key
+              const keyParts = key.split(';');
+              const propertyName = keyParts[0];
+              
+              currentEvent[propertyName] = value;
+            }
+          }
+        }
+        
+        return events;
+      }
+      
+      // Extract work shifts from calendar events
+      function extractWorkShifts(events) {
+        return events
+          .filter(event => {
+            // Filter for work shifts - usually has a SUMMARY containing work-related keywords
+            return event.SUMMARY && (
+              event.SUMMARY.includes('Work') ||
+              event.SUMMARY.includes('Shift') ||
+              event.SUMMARY.includes('HB') ||
+              event.SUMMARY.includes('GST') ||
+              event.SUMMARY.includes('Telefon') ||
+              event.SUMMARY.includes('Deltid')
+            );
+          })
+          .map(event => {
+            // Parse start and end times
+            const startDate = parseIcsDate(event.DTSTART);
+            const endDate = parseIcsDate(event.DTEND);
+            
+            if (!startDate || !endDate) return null;
+            
+            // Format times (HH:MM)
+            const startTime = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+            const endTime = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+            
+            // Determine day type
+            const dayType = getDayTypeFromDate(startDate);
+            
+            // Determine if this shift likely includes a break
+            // Shifts longer than 5 hours typically include a break
+            const durationHours = (endDate - startDate) / (1000 * 60 * 60);
+            const includeBreak = durationHours >= 5;
+            
+            // Default break time is halfway through the shift
+            const breakTimeDate = new Date(startDate.getTime() + (endDate - startDate) / 2);
+            const breakTime = `${breakTimeDate.getHours().toString().padStart(2, '0')}:${breakTimeDate.getMinutes().toString().padStart(2, '0')}`;
+            
+            return {
+              date: startDate,
+              dayType: dayType,
+              startTime: startTime,
+              endTime: endTime,
+              includeBreak: includeBreak,
+              breakTime: breakTime,
+              summary: event.SUMMARY || 'Work Shift',
+              description: event.DESCRIPTION || ''
+            };
+          })
+          .filter(Boolean);
+      }
+      
+      // Parse ICS date format
+      function parseIcsDate(dateStr) {
+        if (!dateStr) return null;
+        
+        let year, month, day, hour, minute, second;
+        
+        // Handle dates with timezone info
+        if (dateStr.includes('T')) {
+          // Format: YYYYMMDDTHHMMSSZ or similar
+          const dateTimeStr = dateStr.split(':')[1] || dateStr;
+          const basicFormat = dateTimeStr.replace(/[^0-9T]/g, '');
+          
+          if (basicFormat.length >= 15) { // YYYYMMDDTHHMMSS
+            year = parseInt(basicFormat.substring(0, 4));
+            month = parseInt(basicFormat.substring(4, 6)) - 1; // 0-indexed months
+            day = parseInt(basicFormat.substring(6, 8));
+            hour = parseInt(basicFormat.substring(9, 11));
+            minute = parseInt(basicFormat.substring(11, 13));
+            second = parseInt(basicFormat.substring(13, 15));
+            
+            return new Date(year, month, day, hour, minute, second);
+          }
+        } else {
+          // Format: YYYYMMDD
+          const basicFormat = dateStr.replace(/[^0-9]/g, '');
+          
+          if (basicFormat.length >= 8) { // YYYYMMDD
+            year = parseInt(basicFormat.substring(0, 4));
+            month = parseInt(basicFormat.substring(4, 6)) - 1; // 0-indexed months
+            day = parseInt(basicFormat.substring(6, 8));
+            
+            return new Date(year, month, day, 0, 0, 0);
+          }
+        }
+        
+        return null;
+      }
+      
+      // Show calendar import message
+      function showCalendarMessage(message, isSuccess) {
+        calendarMessage.innerHTML = message;
+        calendarMessage.className = isSuccess ? 'success-message' : 'error-message';
+        calendarMessage.style.display = 'block';
+      }
+      
+      // Show calendar preview
+      function showCalendarPreview(shifts) {
+        calendarPreview.innerHTML = '';
+        calendarPreview.style.display = 'block';
+        
+        // Group shifts by month
+        const shiftsByMonth = {};
+        
+        shifts.forEach((shift, index) => {
+          const monthKey = `${shift.date.getFullYear()}-${shift.date.getMonth()}`;
+          if (!shiftsByMonth[monthKey]) {
+            shiftsByMonth[monthKey] = [];
+          }
+          shiftsByMonth[monthKey].push({ ...shift, index });
+        });
+        
+        // Sort months chronologically
+        const sortedMonths = Object.keys(shiftsByMonth).sort();
+        
+        // Create preview for each month
+        sortedMonths.forEach(monthKey => {
+          const monthShifts = shiftsByMonth[monthKey];
+          const [year, month] = monthKey.split('-').map(Number);
+          
+          // Create month header
+          const monthHeader = document.createElement('div');
+          monthHeader.style.fontWeight = 'bold';
+          monthHeader.style.marginTop = '10px';
+          monthHeader.style.marginBottom = '5px';
+          monthHeader.textContent = new Date(year, month, 1).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+          
+          calendarPreview.appendChild(monthHeader);
+          
+          // Create shift items for this month
+          monthShifts.forEach(shift => {
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'preview-checkbox';
+            checkbox.value = shift.index;
+            checkbox.checked = true;
+            
+            const label = document.createElement('div');
+            
+            // Format the date and time range
+            const dateStr = formatDate(shift.date);
+            const timeRange = `${shift.startTime}-${shift.endTime}`;
+            
+            // Format duration
+            const durationHours = (timeToMinutes(shift.endTime) - timeToMinutes(shift.startTime)) / 60;
+            const durationStr = `${durationHours.toFixed(1)}h`;
+            
+            label.textContent = `${dateStr}: ${timeRange} (${durationStr}) ${shift.summary}`;
+            
+            previewItem.appendChild(checkbox);
+            previewItem.appendChild(label);
+            calendarPreview.appendChild(previewItem);
+          });
+        });
+      }
+      
+      // Add calendar shifts
+      function addCalendarShifts() {
+        // Get selected shifts
+        const selectedCheckboxes = calendarPreview.querySelectorAll('input[type=checkbox]:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+          showCalendarMessage('Please select at least one shift to add.', false);
+          return;
+        }
+        
+        // Process each selected shift
+        const addedShifts = [];
+        
+        selectedCheckboxes.forEach(checkbox => {
+          const index = parseInt(checkbox.value);
+          const parsedShift = parsedCalendarShifts[index];
+          
+          // Calculate earnings
+          const result = calculateShiftEarnings(
+            parsedShift.date,
+            parsedShift.dayType,
+            parsedShift.startTime,
+            parsedShift.endTime,
+            parsedShift.includeBreak,
+            parsedShift.breakTime
+          );
+          
+          // Create shift object
+          const shift = {
+            id: Date.now() + index, // Unique ID
+            date: parsedShift.date,
+            dayType: parsedShift.dayType,
+            startTime: parsedShift.startTime,
+            endTime: parsedShift.endTime,
+            includeBreak: parsedShift.includeBreak,
+            breakTime: parsedShift.breakTime,
+            duration: result.duration,
+            earnings: result.earnings,
+            segments: result.segments,
+            summary: parsedShift.summary
+          };
+          
+          // Add to array
+          shifts.push(shift);
+          addedShifts.push(shift);
+        });
+        
+        // Save to localStorage
+        saveShifts();
+        
+        // Update UI
+        updateShiftsTable();
+        updateTotals();
+        
+        // Show success message
+        showCalendarMessage(`Added ${addedShifts.length} shifts to your monthly total!`, true);
+        
+        // Clear preview
+        calendarPreview.style.display = 'none';
+        addCalendarShiftsBtn.style.display = 'none';
+      }
+      
       // Delete a shift
       function deleteShift(id) {
         shifts = shifts.filter(shift => shift.id !== id);
@@ -671,7 +1259,7 @@
       // Update the shifts table
       function updateShiftsTable() {
         if (shifts.length === 0) {
-          tableContainer.innerHTML = '<div class="no-shifts">No shifts added yet. Start by adding shifts above.</div>';
+          tableContainer.innerHTML = '<div class="no-shifts">No shifts added yet. Add shifts using one of the methods above.</div>';
           return;
         }
         
@@ -729,6 +1317,9 @@
       
       // Add event listeners
       addShiftBtn.addEventListener('click', addShift);
+      fetchCalendarBtn.addEventListener('click', fetchCalendar);
+      calendarFileInput.addEventListener('change', handleCalendarFile);
+      addCalendarShiftsBtn.addEventListener('click', addCalendarShifts);
       clearAllBtn.addEventListener('click', clearAllShifts);
     })();
   </script>
