@@ -772,6 +772,34 @@
         }
       };
       
+      // Calculate overtime earnings for a shift
+      function calculateOvertimeEarnings(shift) {
+        if (!shift.includeOvertime || !shift.overtimeDuration || shift.overtimeDuration <= 0) {
+          return 0;
+        }
+        
+        let overtimeEarnings = 0;
+        
+        // Check if segments exist
+        if (!shift.segments || !Array.isArray(shift.segments)) {
+          return 0;
+        }
+        
+        // For each segment, add up all overtime earnings
+        shift.segments.forEach(segment => {
+          if (segment.isOvertime) {
+            // Full segment is overtime
+            overtimeEarnings += segment.earnings;
+          } else if (segment.isPartialOvertime && segment.overtimeHours > 0) {
+            // Calculate the overtime portion's earnings manually to avoid NaN
+            const segmentRate = segment.rate || 1.0;
+            overtimeEarnings += segment.overtimeHours * BASE_RATE * segmentRate * 2;
+          }
+        });
+        
+        return overtimeEarnings;
+      }
+      
       // Show shift breakdown in modal
       function showShiftBreakdown(shiftId) {
         const shift = shifts.find(s => s.id === shiftId);
@@ -784,7 +812,8 @@
         
         // Calculate regular and overtime parts
         const regularHours = shift.duration - (shift.overtimeDuration || 0);
-        const regularEarnings = shift.earnings - (calculateOvertimeEarnings(shift) || 0);
+        const overtimeEarnings = calculateOvertimeEarnings(shift);
+        const regularEarnings = shift.earnings - overtimeEarnings;
         
         // Create content HTML
         let html = `
@@ -869,7 +898,7 @@
             </div>
             <div class="breakdown-item">
               <span>Overtime earnings:</span>
-              <span>${calculateOvertimeEarnings(shift).toFixed(2)} kr</span>
+              <span>${overtimeEarnings.toFixed(2)} kr</span>
             </div>
             ` : ''}
             <div class="breakdown-item breakdown-total">
@@ -881,23 +910,6 @@
         
         breakdownContent.innerHTML = html;
         modal.style.display = "block";
-      }
-      
-      // Calculate overtime earnings for a shift
-      function calculateOvertimeEarnings(shift) {
-        if (!shift.includeOvertime || !shift.overtimeDuration) return 0;
-        
-        let overtimeEarnings = 0;
-        
-        shift.segments.forEach(segment => {
-          if (segment.isOvertime) {
-            overtimeEarnings += segment.earnings;
-          } else if (segment.isPartialOvertime && segment.overtimeHours) {
-            overtimeEarnings += segment.overtimeHours * BASE_RATE * segment.rate * 2;
-          }
-        });
-        
-        return overtimeEarnings;
       }
       
       // Toggle overtime options when checkbox is clicked
@@ -1202,8 +1214,8 @@
                 rates,
                 startMinutes, 
                 breakStartMinutes,
-                overtimeStartMinutes,
-                overtimeEndMinutes
+                overtimePosition === 'start' ? overtimeStartMinutes : null,
+                overtimePosition === 'start' ? overtimeEndMinutes : null
               );
               
               // Calculate second part (after break to end)
@@ -1212,8 +1224,8 @@
                 rates,
                 breakEndMinutes,
                 endMinutes,
-                includeOvertime && overtimePosition === 'end' ? overtimeStartMinutes : null,
-                includeOvertime && overtimePosition === 'end' ? overtimeEndMinutes : null
+                overtimePosition === 'end' ? overtimeStartMinutes : null,
+                overtimePosition === 'end' ? overtimeEndMinutes : null
               );
               
               // Combine results
@@ -1547,8 +1559,8 @@
         updateShiftsTable();
         updateTotals();
         
-        // Show shift breakdown immediately
-        showShiftBreakdown(shift.id);
+        // Do NOT show shift breakdown immediately - this has been removed
+        // showShiftBreakdown(shift.id);
       }
       
       // Fetch calendar from URL
