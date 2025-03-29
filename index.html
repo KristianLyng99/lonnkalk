@@ -1708,5 +1708,42 @@
       clearAllBtn.addEventListener('click', clearAllShifts);
     })();
   </script>
+
+  <script>
+// Add this script tag at the end of your HTML file, just before the closing </body> tag
+
+// This script directly fixes the overtime hours input issue
+document.addEventListener('DOMContentLoaded', function() {
+  // Get the elements
+  const overtimeCheckbox = document.getElementById('overtimeCheck');
+  const overtimeHoursInput = document.getElementById('overtimeHours');
+  const overtimePositionSelect = document.getElementById('overtimePosition');
+  
+  // Add a direct event listener for the checkbox
+  overtimeCheckbox.addEventListener('click', function() {
+    console.log('Overtime checkbox clicked, checked:', this.checked);
+    
+    // Force enable/disable the inputs based on checkbox state
+    overtimeHoursInput.disabled = !this.checked;
+    overtimePositionSelect.disabled = !this.checked;
+    
+    // Try to remove any readonly attributes too
+    if (this.checked) {
+      overtimeHoursInput.removeAttribute('readonly');
+      overtimePositionSelect.removeAttribute('readonly');
+    }
+    
+    console.log('Overtime hours input disabled state:', overtimeHoursInput.disabled);
+  });
+  
+  // Check initial state and apply it
+  if (overtimeCheckbox.checked) {
+    overtimeHoursInput.disabled = false;
+    overtimePositionSelect.disabled = false;
+  }
+  
+  console.log('Fix script loaded');
+});
+</script>
 </body>
 </html>
